@@ -102,9 +102,11 @@ let AC,muted=false;
 function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 function tone(f,d,ty,v,f2){if(muted||!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(t+d)}
 const sfx={good:()=>tone(660,.12,'triangle',.18,990),hit:()=>tone(150,.3,'sawtooth',.2,55),warn:()=>{tone(300,.2,'square',.08);setTimeout(()=>tone(300,.2,'square',.08),250)},zone:()=>{tone(523,.12,'triangle',.15);setTimeout(()=>tone(784,.2,'triangle',.15),120)},over:()=>tone(400,.5,'sawtooth',.15,100),win:()=>{tone(523,.15,'triangle',.2);setTimeout(()=>tone(659,.15,'triangle',.2),150);setTimeout(()=>tone(988,.3,'triangle',.2),300)}};
-let busVoiceCooldown=0,busVoiceAudio=null;
+let busVoiceCooldown=0,busVoiceAudio=null,shuntAudio=null;
 function loadBusVoice(){try{busVoiceAudio=new Audio('bus-voice.mp3');busVoiceAudio.volume=0.7;busVoiceAudio.load();console.log('Bus voice audio loaded successfully')}catch(e){console.error('Failed to load bus voice audio:',e)}}
+function loadShuntAudio(){try{shuntAudio=new Audio('SHUNT.mp3');shuntAudio.volume=0.8;shuntAudio.load();console.log('Shunt audio loaded successfully')}catch(e){console.error('Failed to load shunt audio:',e)}}
 loadBusVoice();
+loadShuntAudio();
 function speak(text){console.log('speak called, muted:',muted,'cooldown:',busVoiceCooldown);if(muted||busVoiceCooldown>0){console.log('speak blocked - muted or cooldown');return}if(busVoiceAudio){busVoiceAudio.currentTime=0;busVoiceAudio.play().then(()=>console.log('Bus voice playing')).catch(e=>console.error('Audio play failed:',e));busVoiceCooldown=8}else{console.log('busVoiceAudio is null')}}
 /* ---------- renderer, scene, lights ---------- */
 const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -187,7 +189,7 @@ let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextE
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz)hurt(e.body.hz)});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
-function hurt(n){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
+function hurt(n){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();if(shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
 /* ---------- input ---------- */
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
 let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');

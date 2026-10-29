@@ -173,8 +173,13 @@ for(let i=0;i<30;i++){const s=i%2?1:-1,w=rnd(8,15),h=rnd(6,17),d=rnd(8,16),x=s*(
  sbody(x,h/2,z,w,h,d)}
 for(let i=0;i<46;i++){const s=i%2?1:-1,x=s*rnd(11,16),z=-rnd(-10,290);mk(new THREE.CylinderGeometry(.22,.3,2.6,8),0x6b4a2b,x,1.3,z);mk(new THREE.SphereGeometry(rnd(1.5,2.3),10,8),0x2f7a3a,x,3.6,z)}
 const lamps=[];for(let z=10;z>-300;z-=30)[-1,1].forEach(s=>{mk(new THREE.CylinderGeometry(.08,.1,5.4,6),0x333333,s*7.6,2.7,z);lamps.push(mk(new THREE.SphereGeometry(.28,10,8),0xffe6a8,s*7.0,5.5,z,null,{emissive:0xffd27a,emissiveIntensity:.9}).material)});
-mk(new THREE.BoxGeometry(40,16,14),0xcfc6b0,0,8,-306);sbody(0,8,-306,40,16,14);
-sign('LECTURE HALL',14,2.6,'#103a22','#f2c14e',0,12,-298.9);
+/* lecture hall */
+mk(new THREE.BoxGeometry(hallW,hallH,hallD),0xd4c4a8,0,hallH/2,GOAL-hallD/2);
+/* door frame */
+mk(new THREE.BoxGeometry(8,hallH-2,1),0x8b4513,0,hallH/2-1,GOAL-hallD/2+hallD/2);
+/* door */
+const door=mk(new THREE.BoxGeometry(7,hallH-4,.2),0x5d4037,0,hallH/2-2,GOAL-hallD/2+hallD/2+.5);
+sign('LECTURE HALL',16,3,'#103a22','#f2c14e',0,hallH-2,GOAL-hallD/2+hallD/2+2);
 const beam=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,40,24,1,true),new THREE.MeshBasicMaterial({color:0xffd24a,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}));beam.position.set(0,20,GOAL);scene.add(beam);
 /* ---------- vehicles, crowds, goats, props ---------- */
 const vehs=[],hz=[],dyn=[],picks=[];
@@ -212,7 +217,7 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,20);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0};
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0},hallW=50,hallH=20,hallD=20;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
@@ -284,7 +289,8 @@ function update(dt){
  $('ds').textContent=Math.max(0,Math.round(pb.position.z-GOAL))+' m to lecture hall';
  /* heat and money */
  heat=Math.max(0,heat-dt*5);$('heat-meter-fill').style.width=heat+'%';$('money-display').textContent='₦'+money;
- if(pb.position.z<GOAL+3)finish(true);else if(time<=0)finish(false);
+ const doorZ=GOAL-hallD/2+hallD/2;
+ if(pb.position.z<doorZ+2&&Math.abs(pb.position.x)<5)finish(true);else if(time<=0)finish(false);
 }
 function cam3(dt){
  const d=7.5,h=3.4,tx=pl.position.x,tz=pl.position.z,ty=pl.position.y+1.5;

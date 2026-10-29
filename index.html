@@ -91,7 +91,7 @@ const DEPT_NAMES={
   MLS:'Medical Lab Science',NRS:'Nursing',HNA:'Human Anatomy',HNP:'Human Physiology',MDS:'Medicine & Surgery'
 };
 let playerName='',playerFaculty='',playerDept='';
-const API_BASE='/api';
+const API_BASE=window.BACKEND_URL||'https://your-render-backend-url.onrender.com/api';
 async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
 async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);return await res.json()}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
 const ZONES=[[-60,'Gidan Kwano'],[-120,'Gidan Kwano Bus Park'],[-200,'Bosso Campus'],[-270,'Bosso Bus Park'],[-1e9,'Lecture Hall']];

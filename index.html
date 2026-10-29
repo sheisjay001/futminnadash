@@ -54,7 +54,9 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
 #heat-meter{position:absolute;top:14px;left:14px;width:80px;height:8px;background:rgba(0,0,0,.7);border:2px solid #e74c3c;border-radius:4px;overflow:hidden;z-index:3}
 #heat-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#f39c12,#e74c3c);transition:width .3s}
 #money-display{position:absolute;top:28px;left:14px;font:700 14px var(--head);color:#27ae60;text-shadow:2px 2px 0 #000;z-index:3}
-#shop-btn{position:absolute;bottom:14px;left:14px;padding:5px 10px;font:9px var(--body);background:linear-gradient(180deg,#27ae60,#1e8449);color:#fff;border:2px solid #000;border-radius:4px;cursor:pointer;pointer-events:auto;z-index:3;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+#shop-btn{position:absolute;bottom:14px;left:14px;width:44px;height:44px;padding:0;font:16px var(--body);background:linear-gradient(180deg,#27ae60,#1e8449);color:#fff;border:2px solid #000;border-radius:8px;cursor:pointer;pointer-events:auto;z-index:3;text-transform:uppercase;letter-spacing:.08em;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s}
+#shop-btn:hover{transform:scale(1.1);box-shadow:0 0 15px rgba(39,174,96,.6)}
+#shop-btn:active{transform:scale(.95)}
 @media(min-width:768px){
  #heat-meter{top:14px;left:14px}
  #money-display{top:28px;left:14px}
@@ -78,7 +80,7 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  <div id="mission-card"></div>
  <div id="heat-meter"><div id="heat-meter-fill"></div></div>
  <div id="money-display">₦0</div>
- <button id="shop-btn">SHOP</button>
+ <button id="shop-btn">🛒</button>
 </div>
 <div id="ov"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -219,7 +221,7 @@ function completeMission(title){const card=$('mission-card');card.innerHTML='<h3
 function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}if(n==='Shunt!')heat=Math.min(100,heat+25);try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
 function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<9){inVehicle=true;currentVehicle=v;pb.position.set(0,0,0);pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz,1500);sfx.good();return}}}
 function exitVehicle(){if(!currentVehicle)return;pb.position.set(currentVehicle.b.position.x,1,currentVehicle.b.position.z+3);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
-function openShop(){if(over||!run)return;ov.style.display='flex';ov.innerHTML='<div class="card"><h2>CAMPUS SHOP</h2><p class="sub">Spend your naira on upgrades</p><div style="display:flex;flex-direction:column;gap:10px"><button onclick="buyUpgrade(\'speed\',200)">Faster Shoes - ₦200<br><small style="font-size:11px;color:var(--muted)">+15% movement speed</small></button><button onclick="buyUpgrade(\'jump\',150)">Power Bank - ₦150<br><small style="font-size:11px;color:var(--muted)">+20% jump height</small></button></div><button class="alt" id="closeShop">Close</button></div>';$('closeShop').onclick=()=>{ov.style.display='none'}}
+function openShop(){if(over||!run)return;run=false;ov.style.display='flex';ov.innerHTML='<div class="card"><h2>CAMPUS SHOP</h2><p class="sub">Spend your naira on upgrades</p><div style="display:flex;flex-direction:column;gap:10px"><button onclick="buyUpgrade(\'speed\',200)">Faster Shoes - ₦200<br><small style="font-size:11px;color:var(--muted)">+15% movement speed</small></button><button onclick="buyUpgrade(\'jump\',150)">Power Bank - ₦150<br><small style="font-size:11px;color:var(--muted)">+20% jump height</small></button></div><button class="alt" id="closeShop">Close</button></div>';$('closeShop').onclick=()=>{ov.style.display='none';run=true}}
 function buyUpgrade(type,cost){if(money>=cost){money-=cost;upgrades[type]++;toast(type==='speed'?'Speed upgraded!':'Jump upgraded!',1500);sfx.good();openShop()}else{toast('Not enough money!',1500);sfx.hit()}}
 $('shop-btn').onclick=openShop;
 /* ---------- input ---------- */

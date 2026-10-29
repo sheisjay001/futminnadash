@@ -170,7 +170,7 @@ function update(dt){
  let mx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+jx,mz=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz;
  if(K.KeyQ)yaw+=1.8*dt;if(K.KeyE)yaw-=1.8*dt;
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
- const sp=(K.ShiftLeft||K.ShiftRight?9.5:6.5),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const sp=(K.ShiftLeft||K.ShiftRight||K.Shift?9.5:6.5),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
  pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;

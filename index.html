@@ -27,7 +27,9 @@ canvas{display:block}
 #joy{display:none;position:absolute;left:22px;bottom:34px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:rgba(242,193,78,.85)}
 #jump{display:none;position:absolute;right:26px;bottom:50px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.8);border:2px solid #000;color:#1b0f00;font:700 13px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none}
-.touch #joy,.touch #jump{display:block}
+#sprint{display:none;position:absolute;right:26px;bottom:150px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.5);border:2px solid #000;color:#1b0f00;font:700 11px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none}
+#sprint.fast{background:rgba(255,100,50,.9)}
+.touch #joy,.touch #jump,.touch #sprint{display:block}
 #ov{position:fixed;inset:0;display:flex;overflow-y:auto;background:rgba(8,6,14,.88);padding:16px;box-sizing:border-box;z-index:5}
 .card{margin:auto;width:100%;max-width:380px;background:rgba(12,10,18,.96);border:2px solid #ff7a3d;border-radius:6px;box-shadow:6px 6px 0 #000;padding:22px 20px;display:flex;flex-direction:column;gap:13px;box-sizing:border-box}
 .ey{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
@@ -49,7 +51,7 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  <div id="tl" class="t"><div class="lb">CGPA</div><div class="v" id="cgv">0.00</div><div id="bar"><i></i></div></div>
  <div id="tr" class="t"><div class="lb">Time to 8am</div><div class="v" id="tm">2:10</div><div class="lb" id="zn" style="margin-top:4px;color:#fff">Gidan Kwano</div><div class="lb" id="ds" style="color:#cfd8d2">0 m to lecture hall</div></div>
  <div id="toast" class="t"></div><div id="flash"></div>
- <div id="joy"><div id="knob"></div></div><button id="jump">JUMP</button>
+ <div id="joy"><div id="knob"></div></div><button id="jump">JUMP</button><button id="sprint">⬆</button>
  <div id="cr" class="t">FUTMINNA DASH 3D by Joy Auta · Independent student project, not affiliated with FUT Minna</div>
 </div>
 <div id="ov"></div>
@@ -146,7 +148,7 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0;
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz)hurt(e.body.hz)});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
@@ -159,6 +161,7 @@ joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid
 joy.addEventListener('pointermove',e=>{if(e.pointerId===jid)jm(e)});
 const jup=e=>{if(e.pointerId===jid){jid=null;jx=jz=0;knob.style.transform=''}};joy.addEventListener('pointerup',jup);joy.addEventListener('pointercancel',jup);
 $('jump').addEventListener('pointerdown',e=>{e.stopPropagation();jumpReq=1});
+$('sprint').addEventListener('pointerdown',e=>{e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆'});
 let dr=null;R.domElement.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX}});
 addEventListener('pointermove',e=>{if(dr&&e.pointerId===dr.id){yaw-=(e.clientX-dr.x)*.006;dr.x=e.clientX}});
 addEventListener('pointerup',e=>{if(dr&&e.pointerId===dr.id)dr=null});
@@ -172,7 +175,7 @@ function update(dt){
  let mx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+jx,mz=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz;
  if(K.KeyQ)yaw+=1.8*dt;if(K.KeyE)yaw-=1.8*dt;
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
- const sp=(K.ShiftLeft||K.ShiftRight||K.Shift?9.5:6.5),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?9.5:6.5),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
  pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;

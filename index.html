@@ -152,7 +152,7 @@ pb.addEventListener('collide',e=>{if(run&&e.body.hz)hurt(e.body.hz)});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
 function hurt(n){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
 /* ---------- input ---------- */
-const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>K[e.code]=0);
+const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
 let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');
 function jm(e){const r=jc.width/2;let dx=e.clientX-(jc.left+r),dy=e.clientY-(jc.top+r);const l=Math.hypot(dx,dy)||1,k=Math.min(l,r)/l;dx*=k;dy*=k;knob.style.transform='translate('+dx+'px,'+dy+'px)';jx=dx/r;jz=-dy/r}
 joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid);jc=joy.getBoundingClientRect();jm(e)});
@@ -187,7 +187,7 @@ function update(dt){
  pl.rotation.y=face;
  picks.forEach(p=>{if(!p.on)return;p.g.rotation.y+=dt*2;p.g.position.y=1.1+Math.sin(t*3+p.g.position.z)*.15;
   const ex=p.g.position.x-pb.position.x,ez=p.g.position.z-pb.position.z;
-  if(ex*ex+ez*ez<2.2&&Math.abs(pb.position.y-1)<1.6){p.on=0;p.g.visible=false;cg=Math.min(5,cg+(p.j?.04:.12));sfx.good();toast((p.j?'Jollof':'Lecture notes')+'  +'+(p.j?'0.04':'0.12'),700)}});
+  if(ex*ex+ez*ez<2.2&&Math.abs(pb.position.y-1)<1.6){p.on=0;p.g.visible=false;cg=Math.min(5,cg+(p.j?.15:.25));sfx.good();toast((p.j?'Jollof':'Lecture notes')+'  +'+(p.j?'0.15':'0.25'),700)}});
  /* events: NEPA outage and Harmattan dust */
  if(busVoiceCooldown>0)busVoiceCooldown-=dt;
  nextEv-=dt;if(evT>0){evT-=dt;if(evT<=0)ev=0}

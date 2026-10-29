@@ -61,7 +61,39 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
 const $=i=>document.getElementById(i),ov=$('ov');
 if(typeof THREE==='undefined'||typeof CANNON==='undefined'){ov.innerHTML='<div class="card"><h1>Offline</h1><p class="sub">The 3D engine could not load. Check your internet connection and refresh.</p></div>';throw new Error('libs')}
 const touch=matchMedia('(pointer:coarse)').matches;if(touch)document.body.classList.add('touch');
-const SCHOOLS=['SAMET','SAFT','SAT','SICT','SIPET','SIT','SLS','SPS','SSTE','SPhS','SAAT'];let school='';
+const FACULTIES={
+  SAFT:{name:'School of Agricultural Management & Extension Technology',depts:['AEC','AEX','AGB']},
+  SAAT:{name:'School of Agriculture and Agricultural Technology',depts:['CRP','FWT','HRT','SLM','APT','FST','WAF']},
+  SAT:{name:'School of Architectural Technology',depts:['ARC','FDA','IAD','LSA']},
+  SEET:{name:'School of Electrical Engineering & Technology',depts:['CPE','EEE','MCE','TME']},
+  SET:{name:'School of Environmental Technology',depts:['BDT','EMV','QTS','SVG','URP']},
+  SICT:{name:'School of Information & Communication Technology',depts:['AIN','CPT','CSS','DTS','IFT','IMS','ISS','SWE']},
+  SIPET:{name:'School of Infrastructure, Process Engineering & Technology',depts:['ABE','CHE','CIE','FDE','MEE','MME','MNE','NCE','PGE']},
+  SIT:{name:'School of Innovative Technology',depts:['EBS','FIT','LSM','LTT']},
+  SLS:{name:'School of Life Sciences',depts:['BIO','MBT','MIC','BCH','PBG','ZOO','BOT']},
+  SPS:{name:'School of Physical Sciences',depts:['PHY','CHM','MTS','GEL','STA','CMP','IND','OCE','ENV']},
+  SSTE:{name:'School of Science & Technology Education',depts:['EDU','VTE','PHE','REC']},
+  SAHS:{name:'School of Allied Health Sciences',depts:['MLS','NRS']},
+  SBMS:{name:'School of Basic Medical Sciences',depts:['HNA','HNP','MDS']}
+};
+const DEPT_NAMES={
+  AEC:'Agricultural Economics',AEX:'Agricultural Extension',AGB:'Agribusiness',
+  CRP:'Crop Production',FWT:'Forestry & Wildlife',HRT:'Horticulture',SLM:'Soil Science',APT:'Animal Production',FST:'Food Science',WAF:'Water Resources & Fisheries',
+  ARC:'Architecture',FDA:'Furniture Design',IAD:'Interior Architecture',LSA:'Landscape Architecture',
+  CPE:'Computer Engineering',EEE:'Electrical/Electronics',MCE:'Mechatronics',TME:'Telecommunication',
+  BDT:'Building Technology',EMV:'Estate Management',QTS:'Quantity Surveying',SVG:'Surveying',URP:'Urban & Regional Planning',
+  AIN:'Artificial Intelligence',CPT:'Computer Science',CSS:'Cyber Security',DTS:'Data Science',IFT:'Information Technology',IMS:'Information Science',ISS:'Intelligence & Security',SWE:'Software Engineering',
+  ABE:'Agricultural Engineering',CHE:'Chemical Engineering',CIE:'Civil Engineering',FDE:'Food Engineering',MEE:'Mechanical Engineering',MME:'Metallurgical Engineering',MNE:'Mining Engineering',NCE:'Nuclear Engineering',PGE:'Petroleum Engineering',
+  EBS:'Entrepreneurship',FIT:'Financial Technology',LSM:'Logistics & Supply Chain',LTT:'Logistics & Transport',
+  BIO:'Biology',MBT:'Microbiology',MIC:'Microbiology',BCH:'Biochemistry',PBG:'Plant Biology',ZOO:'Zoology',BOT:'Botany',
+  PHY:'Physics',CHM:'Chemistry',MTS:'Mathematics',GEL:'Geology',STA:'Statistics',CMP:'Computer Science',IND:'Industrial Chemistry',OCE:'Oceanography',ENV:'Environmental Science',
+  EDU:'Education',VTE:'Vocational Tech',PHE:'Physical Health',REC:'Recreation',
+  MLS:'Medical Lab Science',NRS:'Nursing',HNA:'Human Anatomy',HNP:'Human Physiology',MDS:'Medicine & Surgery'
+};
+let playerName='',playerFaculty='',playerDept='';
+const API_BASE='/api';
+async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
+async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);return await res.json()}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
 const ZONES=[[-60,'Gidan Kwano'],[-120,'Gidan Kwano Bus Park'],[-200,'Bosso Campus'],[-270,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
 const GOAL=-288,TIME0=130;
 /* ---------- sound ---------- */
@@ -219,22 +251,30 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
  if(run&&!over)update(dt);else if(!run){yaw+=dt*.12;pl.position.set(pb.position.x,.5,pb.position.z)}
  cam3(dt);R.render(scene,cam)}
 function finish(win){over=true;run=false;let c=cg;if(win)c=Math.min(5,cg+Math.max(0,time)/TIME0*.5);c=+c.toFixed(2);sfx[win?'win':'over']();
+ saveScore(c,Math.max(0,time),win);
  let best=0;try{best=+localStorage.getItem('fd3Best')||0;if(c>best){localStorage.setItem('fd3Best',c);best=c}}catch(e){}
  ov.style.display='flex';
- ov.innerHTML='<div class="card c"><div class="ey">'+(win?'You made it to class':'Late for the 8am lecture')+'</div><div class="big">'+c.toFixed(2)+'</div><h1 style="font-size:34px">'+cls(c)+'</h1><p class="sub">Best: '+best.toFixed(2)+' / 5.00'+(school?' &middot; '+school:'')+'</p><button id="again">Run again</button><button class="alt" id="share">Share result</button></div>';
+ ov.innerHTML='<div class="card c"><div class="ey">'+(win?'You made it to class':'Late for the 8am lecture')+'</div><div class="big">'+c.toFixed(2)+'</div><h1 style="font-size:34px">'+cls(c)+'</h1><p class="sub">Best: '+best.toFixed(2)+' / 5.00'+(playerDept?' &middot; '+DEPT_NAMES[playerDept]||playerDept+' ('+FACULTIES[playerFaculty]?.name+')':'')+'</p><button id="again">Run again</button><button class="alt" id="share">Share result</button><button class="alt" id="leaderboard">Leaderboard</button></div>';
  $('again').onclick=()=>location.reload();
- $('share').onclick=async()=>{const s=(school?school+' student: ':'')+'I finished FUTMINNA Dash 3D with a '+c.toFixed(2)+' CGPA ('+cls(c)+'). Can you beat me? Created by Joy Auta: '+location.href;
-  try{if(navigator.share)await navigator.share({text:s});else{await navigator.clipboard.writeText(s);$('share').textContent='Copied. Paste it on WhatsApp'}}catch(e){}}}
-function begin(){ac();ov.style.display='none';run=true;t=0;toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1]}
+ $('share').onclick=async()=>{const s=(playerName?playerName+' ('+(DEPT_NAMES[playerDept]||playerDept)+'): ':'')+'I finished FUTMINNA Dash 3D with a '+c.toFixed(2)+' CGPA ('+cls(c)+'). Can you beat me? Created by Joy Auta: '+location.href;
+  try{if(navigator.share)await navigator.share({text:s});else{await navigator.clipboard.writeText(s);$('share').textContent='Copied. Paste it on WhatsApp'}}catch(e){}};
+ $('leaderboard').onclick=async()=>{const lb=await getLeaderboard(playerFaculty,playerDept);showLeaderboard(lb,playerFaculty,playerDept)}}
+function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Leaderboard':faculty?FACULTIES[faculty]?.name+' Leaderboard':'Overall Leaderboard';const rows=lb.slice(0,10).map((e,i)=>'<tr><td>'+(i+1)+'</td><td>'+e.name+'</td><td>'+e.cgpa.toFixed(2)+'</td><td>'+(DEPT_NAMES[e.department]||e.department)+'</td></tr>').join('');
+ ov.innerHTML='<div class="card"><h2>'+title+'</h2><table style="width:100%;text-align:left;border-collapse:collapse;font:13px var(--body)"><thead><tr><th>#</th><th>Name</th><th>CGPA</th><th>Department</th></tr></thead><tbody>'+rows+'</tbody></table><button id="closeLB">Close</button></div>';
+ $('closeLB').onclick=()=>location.reload()}
+function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}ac();ov.style.display='none';run=true;t=0;toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1]}
 function menu(){
  ov.innerHTML='<div class="card"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>Dash 3D</h1></div>'+
  '<p class="sub">It is 7:55am. Run, jump and dodge your way from Gidan Kwano to the lecture hall before 8am. Collect jollof and lecture notes to lift your CGPA.</p>'+
  '<div><h2>Controls</h2><p class="sub">'+(touch?'Left thumb: move. Drag anywhere else: look around. Jump button: jump.':'WASD or arrows: move. Shift: sprint. Space: jump. Drag the mouse or press Q / E: turn the camera.')+'</p></div>'+
  '<div><h2>Watch out for</h2><p class="sub">Keke, okada and the slow Alawusa bus. Goats on the road. The shunt at the bus parks. NEPA outages (use your torch) and Harmattan dust. Traffic cones and drums are real physics objects: knock them about.</p></div>'+
- '<div><h2>Your school</h2><div class="chips">'+SCHOOLS.map(x=>'<button class="alt chip" data-s="'+x+'">'+x+'</button>').join('')+'</div></div>'+
+ '<div><h2>Player Registration</h2><p class="sub"><input type="text" id="pname" placeholder="Enter your name" style="width:100%;padding:10px;margin:5px 0;font:14px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box"></p>'+
+ '<p class="sub"><select id="pfaculty" style="width:100%;padding:10px;margin:5px 0;font:14px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box"><option value="">Select Faculty</option>'+
+ Object.keys(FACULTIES).map(k=>'<option value="'+k+'">'+FACULTIES[k].name+'</option>').join('')+'</select></p>'+
+ '<p class="sub"><select id="pdept" style="width:100%;padding:10px;margin:5px 0;font:14px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box" disabled><option value="">Select Department</option></select></p></div>'+
  '<button id="go">Start</button><div class="sm">Created by Joy Auta &middot; &copy; 2026 All rights reserved<br>Independent student project. Not affiliated with or endorsed by FUT Minna.</div></div>';
  $('go').onclick=begin;
- document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{school=b.dataset.s;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b))})}
+ $('pfaculty').onchange=()=>{const f=$('pfaculty').value;const d=$('pdept');d.disabled=!f;d.innerHTML='<option value="">Select Department</option>'+(f?FACULTIES[f].depts.map(x=>'<option value="'+x+'">'+DEPT_NAMES[x]||x+'</option>').join(''):'')}}
 menu();requestAnimationFrame(frame);
 </script>
 </body>

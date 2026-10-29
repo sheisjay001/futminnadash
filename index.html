@@ -51,6 +51,9 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
 #mission-card h3{margin:0 0 6px;font-size:14px;color:#f2c14e;text-transform:uppercase;letter-spacing:.1em}
 #mission-card p{margin:0;font-size:12px;color:#f4f1ea}
 #mission-card .complete{color:#27ae60;font-weight:700}
+#heat-meter{position:absolute;top:14px;left:14px;width:80px;height:8px;background:rgba(0,0,0,.7);border:2px solid #e74c3c;border-radius:4px;overflow:hidden}
+#heat-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#f39c12,#e74c3c);transition:width .3s}
+#money-display{position:absolute;top:28px;left:14px;font:700 14px var(--head);color:#27ae60;text-shadow:2px 2px 0 #000}
 </style>
 </head>
 <body>
@@ -62,6 +65,8 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  <div id="cr" class="t">FUTMINNA DASH 3D by Joy Auta · Independent student project, not affiliated with FUT Minna</div>
  <canvas id="minimap"></canvas>
  <div id="mission-card"></div>
+ <div id="heat-meter"><div id="heat-meter-fill"></div></div>
+ <div id="money-display">₦0</div>
 </div>
 <div id="ov"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -176,7 +181,7 @@ for(let i=0;i<3;i++)veh('bus',i%2?3.5:-3.5,-rnd(20,280),i%2?-1:1,3.2,'Alawusa bu
 [-82,-98,-114,-222,-238,-254].forEach((z,i)=>{const s=i%2?1:-1;veh('bus',s*17,z,0,0,null);vehs[vehs.length-1].g.rotation.y=Math.PI/2*s})
 function osc(mesh,b,cx,amp,sp,ph,name){hz.push({mesh,b,cx,amp,sp,ph});b.hz=name;W.addBody(b)}
 function crowd(zc){for(let i=0;i<5;i++){const m=person([0xb83a3a,0xd17a22,0x7a2f8f,0x2f6fb8,0xc0a020][i],i%2?0x6b3f1d:0x8d5524,0x1a1a1a,0);
- const b=new CANNON.Body({mass:0,type:CANNON.Body.KINEMATIC,material:mat});b.addShape(new CANNON.Sphere(.5));b.position.set(0,.6,zc-i*5);osc(m,b,0,8.5,rnd(.7,1.1),rnd(0,6),'Shunt!')}}
+ const b=new CANNON.Body({mass:0,type:CANNON.Body.KINEMATIC,material:mat});b.addShape(new CANNON.Sphere(.5));const sidewalkX=i%2?5:-5;b.position.set(sidewalkX,.6,zc-i*5);osc(m,b,sidewalkX,2,rnd(.5,.8),rnd(0,6),'Shunt!')}}
 crowd(-70);crowd(-205);
 for(let i=0;i<8;i++){const g=new THREE.Group();mk(new THREE.BoxGeometry(.6,.75,1.2),0xe8e2d6,0,.75,0,g);mk(new THREE.BoxGeometry(.3,.35,.4),0xd9d2c3,0,1.2,.7,g);mk(new THREE.BoxGeometry(.08,.3,.08),0x4a3a2c,-.1,1.5,.7,g);mk(new THREE.BoxGeometry(.08,.3,.08),0x4a3a2c,.1,1.5,.7,g);
  [[-.2,.45],[.2,.45],[-.2,-.45],[.2,-.45]].forEach(a=>mk(new THREE.BoxGeometry(.1,.4,.1),0x4a3b2c,a[0],.2,a[1],g));scene.add(g);
@@ -193,15 +198,17 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0;
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
 function showMission(title,objective){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p>'+objective+'</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),4000)}
 function completeMission(title){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p class="complete">MISSION COMPLETE!</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),3000);sfx.good()}
-function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
+function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}if(n==='Shunt!')heat=Math.min(100,heat+25);try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
+function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<9){inVehicle=true;currentVehicle=v;pb.position.set(0,0,0);pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz,1500);sfx.good();return}}}
+function exitVehicle(){if(!currentVehicle)return;pb.position.set(currentVehicle.b.position.x,1,currentVehicle.b.position.z+3);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
 /* ---------- input ---------- */
-const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
+const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&!inVehicle){tryEnterVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0;if(e.code==='KeyF'&&inVehicle){exitVehicle()}});
 let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');
 function jm(e){const r=jc.width/2;let dx=e.clientX-(jc.left+r),dy=e.clientY-(jc.top+r);const l=Math.hypot(dx,dy)||1,k=Math.min(l,r)/l;dx*=k;dy*=k;knob.style.transform='translate('+dx+'px,'+dy+'px)';jx=dx/r;jz=-dy/r}
 joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid);jc=joy.getBoundingClientRect();jm(e)});
@@ -224,8 +231,9 @@ function update(dt){
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
  const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?12:9.5):(touch?8:6.5)),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
- pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
+ if(inVehicle&&currentVehicle){const accel=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0);currentVehicle.b.velocity.z=currentVehicle.dir*(currentVehicle.sp+accel*5);pb.position.copy(currentVehicle.b.position);pb.position.y=1;pl.position.copy(pb.position)}else{
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;
+ pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
  hz.forEach(h=>{const a=t*h.sp+h.ph;h.b.position.x=h.cx+Math.sin(a)*h.amp;h.b.velocity.set(Math.cos(a)*h.amp*h.sp,0,0);h.mesh.rotation.y=Math.cos(a)>0?Math.PI/2:-Math.PI/2});
  W.step(1/60,dt,3);
  vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-312)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-312}v.g.position.set(v.b.position.x,0,v.b.position.z)});
@@ -234,10 +242,10 @@ function update(dt){
  if(pb.position.x>40)pb.position.x=40;if(pb.position.x<-40)pb.position.x=-40;if(pb.position.z>26)pb.position.z=26;if(pb.position.z<-300)pb.position.z=-300;
  pl.position.set(pb.position.x,pb.position.y-.5,pb.position.z);
  if(l>.1){const tf=Math.atan2(dx,dz);let d=tf-face;d=Math.atan2(Math.sin(d),Math.cos(d));face+=d*Math.min(1,dt*12);pl.l1.position.z=Math.sin(t*12)*.25*Math.min(1,l);pl.l2.position.z=-Math.sin(t*12)*.25*Math.min(1,l)}
- pl.rotation.y=face;
+ pl.rotation.y=face;}
  picks.forEach(p=>{if(!p.on)return;p.g.rotation.y+=dt*2;p.g.position.y=1.1+Math.sin(t*3+p.g.position.z)*.15;
   const ex=p.g.position.x-pb.position.x,ez=p.g.position.z-pb.position.z;
-  if(ex*ex+ez*ez<2.2&&Math.abs(pb.position.y-1)<1.6){p.on=0;p.g.visible=false;cg=Math.min(5,cg+(p.j?.15:.25));sfx.good();toast((p.j?'Jollof':'Lecture notes')+'  +'+(p.j?'0.15':'0.25'),700)}});
+  if(ex*ex+ez*ez<2.2&&Math.abs(pb.position.y-1)<1.6){p.on=0;p.g.visible=false;cg=Math.min(5,cg+(p.j?.15:.25));money+=p.j?50:100;sfx.good();toast((p.j?'Jollof':'Lecture notes')+'  +'+(p.j?'0.15':'0.25')+'  +₦'+(p.j?50:100),700)}});
  /* events: NEPA outage and Harmattan dust */
  if(busVoiceCooldown>0)busVoiceCooldown-=dt;
  nextEv-=dt;if(evT>0){evT-=dt;if(evT<=0)ev=0}
@@ -245,13 +253,20 @@ function update(dt){
  const nep=ev===1?1:0,hz2=ev===2?1:0,k=Math.min(1,dt*2.5);
  lit.nepa+=(nep-lit.nepa)*k;lit.sun+=((nep?.05:hz2?.9:1.5)-lit.sun)*k;lit.hemi+=((nep?.1:hz2?.6:.65)-lit.hemi)*k;lit.fog+=((nep?.02:hz2?.05:.011)-lit.fog)*k;
  sun.intensity=lit.sun;hemi.intensity=lit.hemi;scene.fog.density=lit.fog;
- const c1=new THREE.Color(nep?0x080b14:hz2?0xd2aa69:0xf0b27a);scene.fog.color.lerp(c1,k);scene.background.lerp(c1,k);
+ /* day-to-evening cycle */
+ dayTime+=dt*.02;const dayCycle=(Math.sin(dayTime)+1)/2;
+ const dayColor=new THREE.Color(nep?0x080b14:hz2?0xd2aa69:0xf0b27a);
+ const eveColor=new THREE.Color(nep?0x080b14:hz2?0x8b4513:0x1a1a2e);
+ const skyColor=dayColor.clone().lerp(eveColor,dayCycle);
+ scene.fog.color.lerp(skyColor,k);scene.background.lerp(skyColor,k);
  lamps.forEach(m=>m.emissiveIntensity=.9*(1-lit.nepa));
  torch.intensity=3.2*lit.nepa;torch.position.set(pb.position.x,2.6,pb.position.z);torch.target.position.set(pb.position.x+Math.sin(face)*10,0,pb.position.z+Math.cos(face)*10);
  /* zones, hud */
  let z=0;while(pb.position.z<ZONES[z][0])z++;if(z!==zi){zi=z;$('zn').textContent=ZONES[z][1];toast(ZONES[z][1].toUpperCase(),2200);sfx.zone()}
  $('cgv').textContent=cg.toFixed(2);$('bar').firstChild.style.width=(cg/5*100)+'%';$('tm').textContent=fmt(Math.max(0,time));
  $('ds').textContent=Math.max(0,Math.round(pb.position.z-GOAL))+' m to lecture hall';
+ /* heat and money */
+ heat=Math.max(0,heat-dt*5);$('heat-meter-fill').style.width=heat+'%';$('money-display').textContent='₦'+money;
  if(pb.position.z<GOAL+3)finish(true);else if(time<=0)finish(false);
 }
 function cam3(dt){

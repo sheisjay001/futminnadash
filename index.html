@@ -45,6 +45,12 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
 .chip.on{background:linear-gradient(180deg,#ffd35a,#ff9a3d);color:#1b0f00;border-color:#000}
 .big{font:76px/1 var(--head);color:var(--gold);text-align:center;text-shadow:3px 3px 0 #000}
 .c{text-align:center}
+#minimap{position:absolute;bottom:14px;right:14px;width:140px;height:140px;border-radius:50%;background:rgba(0,0,0,.7);border:3px solid rgba(242,193,78,.8);box-shadow:0 0 10px rgba(0,0,0,.5)}
+#mission-card{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:linear-gradient(180deg,rgba(0,0,0,.9),rgba(20,20,30,.9));border:2px solid rgba(242,193,78,.8);border-radius:8px;padding:12px 20px;min-width:280px;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
+#mission-card.show{opacity:1}
+#mission-card h3{margin:0 0 6px;font-size:14px;color:#f2c14e;text-transform:uppercase;letter-spacing:.1em}
+#mission-card p{margin:0;font-size:12px;color:#f4f1ea}
+#mission-card .complete{color:#27ae60;font-weight:700}
 </style>
 </head>
 <body>
@@ -54,6 +60,8 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  <div id="toast" class="t"></div><div id="flash"></div>
  <div id="joy"><div id="knob"></div></div><button id="jump">JUMP</button><button id="sprint">⬆</button>
  <div id="cr" class="t">FUTMINNA DASH 3D by Joy Auta · Independent student project, not affiliated with FUT Minna</div>
+ <canvas id="minimap"></canvas>
+ <div id="mission-card"></div>
 </div>
 <div id="ov"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -185,11 +193,13 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false;
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
-function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();if(playShunt&&shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
+function showMission(title,objective){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p>'+objective+'</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),4000)}
+function completeMission(title){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p class="complete">MISSION COMPLETE!</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),3000);sfx.good()}
+function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
 /* ---------- input ---------- */
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
 let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');
@@ -247,18 +257,35 @@ function update(dt){
 function cam3(dt){
  const d=7.5,h=3.4,tx=pl.position.x,tz=pl.position.z,ty=pl.position.y+1.5;
  const px=tx+Math.sin(yaw)*d,pz=tz+Math.cos(yaw)*d,py=ty+h;
+ if(shakeIntensity>0){const sx=(Math.random()-.5)*shakeIntensity,sy=(Math.random()-.5)*shakeIntensity,sz=(Math.random()-.5)*shakeIntensity;cam.position.x+=sx;cam.position.y+=sy;cam.position.z+=sz;shakeIntensity=Math.max(0,shakeIntensity-dt*2)}
  cam.position.x+=(px-cam.position.x)*Math.min(1,dt*8);cam.position.y+=(py-cam.position.y)*Math.min(1,dt*8);cam.position.z+=(pz-cam.position.z)*Math.min(1,dt*8);
+ const targetFOV=sprintOn?75:60;cam.fov+=(targetFOV-cam.fov)*Math.min(1,dt*5);cam.updateProjectionMatrix();
  cam.lookAt(tx,ty,tz);
  sun.position.set(tx-30,34,tz-26);sun.target.position.set(tx,0,tz);
+}
+const minimapCanvas=$('minimap'),minimapCtx=minimapCanvas.getContext('2d');
+minimapCanvas.width=140;minimapCanvas.height=140;
+function renderMinimap(){
+ const ctx=minimapCtx,scale=.35,center=70;
+ ctx.fillStyle='rgba(20,20,30,.9)';ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='rgba(242,193,78,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.stroke();
+ const px=pb.position.x*scale+center,pz=pb.position.z*scale+center;
+ ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.arc(px,pz,4,0,Math.PI*2);ctx.fill();
+ const gx=GOAL*scale+center,gz=-288*scale+center;
+ ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,5,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#fff';ctx.font='8px Inter';ctx.fillText('🎓',gx-4,gz+3);
+ vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()});
+ hz.forEach(h=>{const hx=h.b.position.x*scale+center,hz=h.b.position.z*scale+center;ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(hx,hz,2,0,Math.PI*2);ctx.fill()});
 }
 let last=0;
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
  if(run&&!over)update(dt);else if(!run){yaw+=dt*.12;pl.position.set(pb.position.x,.5,pb.position.z)}
- cam3(dt);R.render(scene,cam)}
+ cam3(dt);renderMinimap();R.render(scene,cam)}
 function finish(win){over=true;run=false;let c=cg;if(win)c=Math.min(5,cg+Math.max(0,time)/TIME0*.5);c=+c.toFixed(2);sfx[win?'win':'over']();
  saveScore(c,Math.max(0,time),win);
  let best=0;try{best=+localStorage.getItem('fd3Best')||0;if(c>best){localStorage.setItem('fd3Best',c);best=c}}catch(e){}
  ov.style.display='flex';
+ if(win)completeMission('Reach Class Before 8am');
  ov.innerHTML='<div class="card c"><div class="ey">'+(win?'You made it to class':'Late for the 8am lecture')+'</div><div class="big">'+c.toFixed(2)+'</div><h1 style="font-size:34px">'+cls(c)+'</h1><p class="sub">Best: '+best.toFixed(2)+' / 5.00'+(playerDept?' &middot; '+DEPT_NAMES[playerDept]||playerDept+' ('+FACULTIES[playerFaculty]?.name+')':'')+'</p><button id="again">Run again</button><button class="alt" id="share">Share result</button><button class="alt" id="leaderboard">Leaderboard</button></div>';
  $('again').onclick=()=>location.reload();
  $('share').onclick=async()=>{const s=(playerName?playerName+' ('+(DEPT_NAMES[playerDept]||playerDept)+'): ':'')+'I finished FUTMINNA Dash 3D with a '+c.toFixed(2)+' CGPA ('+cls(c)+'). Can you beat me? Created by Joy Auta: '+location.href;
@@ -267,7 +294,7 @@ function finish(win){over=true;run=false;let c=cg;if(win)c=Math.min(5,cg+Math.ma
 function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Leaderboard':faculty?FACULTIES[faculty]?.name+' Leaderboard':'Overall Leaderboard';const rows=lb.slice(0,10).map((e,i)=>'<tr><td>'+(i+1)+'</td><td>'+e.name+'</td><td>'+Number(e.cgpa).toFixed(2)+'</td><td>'+(DEPT_NAMES[e.department]||e.department)+'</td></tr>').join('');
  ov.innerHTML='<div class="card"><h2>'+title+'</h2><table style="width:100%;text-align:left;border-collapse:collapse;font:13px var(--body)"><thead><tr><th>#</th><th>Name</th><th>CGPA</th><th>Department</th></tr></thead><tbody>'+rows+'</tbody></table><button id="closeLB">Close</button></div>';
  $('closeLB').onclick=()=>location.reload()}
-function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}ac();ov.style.display='none';run=true;t=0;toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1]}
+function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}ac();ov.style.display='none';run=true;t=0;toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1];showMission('Reach Class Before 8am','Run from Gidan Kwano to the lecture hall before time runs out. Avoid vehicles and collect jollof for CGPA!')}
 function menu(){
  ov.innerHTML='<div class="card"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>Dash 3D</h1></div>'+
  '<p class="sub">It is 7:55am. Run, jump and dodge your way from Gidan Kwano to the lecture hall before 8am. Collect jollof and lecture notes to lift your CGPA.</p>'+

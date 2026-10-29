@@ -304,8 +304,10 @@ function renderMinimap(){
  const px=pb.position.x*scale+center,pz=pb.position.z*scale+center;
  ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.arc(px,pz,4,0,Math.PI*2);ctx.fill();
  const gx=GOAL*scale+center,gz=GOAL*scale+center;
- ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,5,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#fff';ctx.font='8px Inter';ctx.fillText('🎓',gx-4,gz+3);
+ ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,6,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gx,gz,6,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle='#fff';ctx.font='10px Inter';ctx.fillText('🎓',gx-5,gz+4);
+ ctx.fillStyle='#fff';ctx.font='8px Inter';ctx.fillText('DEST',gx-10,gz+16);
  vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()});
  hz.forEach(h=>{const hx=h.b.position.x*scale+center,hz=h.b.position.z*scale+center;ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(hx,hz,2,0,Math.PI*2);ctx.fill()});
 }

@@ -386,6 +386,44 @@ function renderMinimap(){
  vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;const vDist=Math.hypot(vx-center,vz-center);if(vDist<65){ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()}});
  hz.forEach(h=>{const hx=h.b.position.x*scale+center,hz=h.b.position.z*scale+center;const hDist=Math.hypot(hx-center,hz-center);if(hDist<65){ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(hx,hz,2,0,Math.PI*2);ctx.fill()}});
 }
+function showConfetti(text){
+ const confetti=document.createElement('div');
+ confetti.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:100;display:flex;align-items:center;justify-content:center;font:clamp(48px,12vw,96px) var(--head);color:#f2c14e;text-shadow:4px 4px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;animation:confettiPop 0.5s ease-out forwards';
+ confetti.textContent=text;
+ document.body.appendChild(confetti);
+ const canvas=document.createElement('canvas');
+ canvas.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99';
+ document.body.appendChild(canvas);
+ const ctx=canvas.getContext('2d');
+ canvas.width=innerWidth;canvas.height=innerHeight;
+ const particles=[];
+ const colors=['#f2c14e','#ff7a3d','#27ae60','#3498db','#9b59b6'];
+ for(let i=0;i<150;i++){
+  particles.push({
+   x:innerWidth/2,y:innerHeight/2,
+   vx:(Math.random()-0.5)*20,vy:(Math.random()-0.5)*20-10,
+   size:Math.random()*8+4,color:colors[Math.floor(Math.random()*colors.length)],
+   rotation:Math.random()*Math.PI*2,rotationSpeed:(Math.random()-0.5)*0.3
+  });
+ }
+ let startTime=performance.now();
+ function animate(now){
+  const elapsed=(now-startTime)/1000;
+  if(elapsed>3){confetti.remove();canvas.remove();return}
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+   p.x+=p.vx;p.y+=p.vy;p.vy+=0.5;p.rotation+=p.rotationSpeed;
+   ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rotation);
+   ctx.fillStyle=p.color;ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+   ctx.restore();
+  });
+  requestAnimationFrame(animate);
+ }
+ requestAnimationFrame(animate);
+ const style=document.createElement('style');
+ style.textContent='@keyframes confettiPop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}';
+ document.head.appendChild(style);
+}
 let last=0;
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
  if(run&&!over)update(dt);else if(!run){yaw+=dt*.12;pl.position.set(pb.position.x,.5,pb.position.z)}
@@ -395,6 +433,7 @@ function finish(win){over=true;run=false;let c=cg;if(win)c=Math.min(5,cg+Math.ma
  let best=0;try{best=+localStorage.getItem('fd3Best')||0;if(c>best){localStorage.setItem('fd3Best',c);best=c}}catch(e){}
  ov.style.display='flex';
  if(win)completeMission('Reach Class Before 8am');
+ if(win&&c>=4.5)showConfetti('SCHOLAR!!!');
  ov.innerHTML='<div class="card c"><div class="ey">'+(win?'You made it to class':'Late for the 8am lecture')+'</div><div class="big">'+c.toFixed(2)+'</div><h1 style="font-size:34px">'+cls(c)+'</h1><p class="sub">Best: '+best.toFixed(2)+' / 5.00'+(playerDept?' &middot; '+DEPT_NAMES[playerDept]||playerDept+' ('+FACULTIES[playerFaculty]?.name+')':'')+'</p><button id="again">Run again</button><button class="alt" id="share">Share result</button><button class="alt" id="leaderboard">Leaderboard</button></div>';
  $('again').onclick=()=>location.reload();
  $('share').onclick=async()=>{const s=(playerName?playerName+' ('+(DEPT_NAMES[playerDept]||playerDept)+'): ':'')+'I finished FUTMINNA Dash 3D with a '+c.toFixed(2)+' CGPA ('+cls(c)+'). Can you beat me? Created by Joy Auta: '+location.href;

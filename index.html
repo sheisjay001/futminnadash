@@ -67,6 +67,8 @@ let AC,muted=false;
 function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 function tone(f,d,ty,v,f2){if(muted||!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(t+d)}
 const sfx={good:()=>tone(660,.12,'triangle',.18,990),hit:()=>tone(150,.3,'sawtooth',.2,55),warn:()=>{tone(300,.2,'square',.08);setTimeout(()=>tone(300,.2,'square',.08),250)},zone:()=>{tone(523,.12,'triangle',.15);setTimeout(()=>tone(784,.2,'triangle',.15),120)},over:()=>tone(400,.5,'sawtooth',.15,100),win:()=>{tone(523,.15,'triangle',.2);setTimeout(()=>tone(659,.15,'triangle',.2),150);setTimeout(()=>tone(988,.3,'triangle',.2),300)}};
+let busVoiceCooldown=0;
+function speak(text){if(muted||busVoiceCooldown>0)return;if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(text);u.rate=1.1;u.pitch=0.9;try{const voices=speechSynthesis.getVoices();const naija=voices.find(v=>v.lang.includes('en-NG')||v.lang.includes('en-GB'));if(naija)u.voice=naija}catch(e){}speechSynthesis.speak(u);busVoiceCooldown=8}}
 /* ---------- renderer, scene, lights ---------- */
 const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;
@@ -176,7 +178,7 @@ function update(dt){
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;
  hz.forEach(h=>{const a=t*h.sp+h.ph;h.b.position.x=h.cx+Math.sin(a)*h.amp;h.b.velocity.set(Math.cos(a)*h.amp*h.sp,0,0);h.mesh.rotation.y=Math.cos(a)>0?Math.PI/2:-Math.PI/2});
  W.step(1/60,dt,3);
- vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-312)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-312}v.g.position.set(v.b.position.x,0,v.b.position.z)});
+ vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-312)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-312;if(v.sp===3.2){const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<25&&busVoiceCooldown<=0)speak('better commot for road ohh')}}v.g.position.set(v.b.position.x,0,v.b.position.z)});
  hz.forEach(h=>{h.mesh.position.set(h.b.position.x,h.mesh.isGroup&&h.b.shapes[0].type===CANNON.Shape.types.SPHERE?0:0,h.b.position.z);if(h.mesh.l1){h.mesh.l1.position.z=Math.sin(t*10)*.2;h.mesh.l2.position.z=-Math.sin(t*10)*.2}});
  dyn.forEach(d=>{d.mesh.position.copy(d.b.position);d.mesh.quaternion.copy(d.b.quaternion)});
  if(pb.position.x>40)pb.position.x=40;if(pb.position.x<-40)pb.position.x=-40;if(pb.position.z>26)pb.position.z=26;if(pb.position.z<-300)pb.position.z=-300;
@@ -187,6 +189,7 @@ function update(dt){
   const ex=p.g.position.x-pb.position.x,ez=p.g.position.z-pb.position.z;
   if(ex*ex+ez*ez<2.2&&Math.abs(pb.position.y-1)<1.6){p.on=0;p.g.visible=false;cg=Math.min(5,cg+(p.j?.04:.12));sfx.good();toast((p.j?'Jollof':'Lecture notes')+'  +'+(p.j?'0.04':'0.12'),700)}});
  /* events: NEPA outage and Harmattan dust */
+ if(busVoiceCooldown>0)busVoiceCooldown-=dt;
  nextEv-=dt;if(evT>0){evT-=dt;if(evT<=0)ev=0}
  if(nextEv<=0&&ev===0){evk++;ev=evk%2?1:2;evT=9;nextEv=34;sfx.warn();toast(ev===1?'NEPA OUTAGE':'HARMATTAN DUST',2200)}
  const nep=ev===1?1:0,hz2=ev===2?1:0,k=Math.min(1,dt*2.5);

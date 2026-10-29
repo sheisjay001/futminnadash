@@ -27,7 +27,7 @@ canvas{display:block}
 #joy{display:none;position:absolute;left:22px;bottom:34px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:rgba(242,193,78,.85)}
 #jump{display:none;position:absolute;right:26px;bottom:50px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.8);border:2px solid #000;color:#1b0f00;font:700 13px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none}
-#sprint{display:none;position:absolute;right:26px;bottom:150px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.5);border:2px solid #000;color:#1b0f00;font:700 11px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none}
+#sprint{display:none;position:absolute;right:26px;bottom:150px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.5);border:2px solid #000;color:#1b0f00;font:700 11px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none;z-index:10}
 #sprint.fast{background:rgba(255,100,50,.9)}
 .touch #joy,.touch #jump,.touch #sprint{display:block}
 #ov{position:fixed;inset:0;display:flex;overflow-y:auto;background:rgba(8,6,14,.88);padding:16px;box-sizing:border-box;z-index:5}
@@ -193,7 +193,7 @@ joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid
 joy.addEventListener('pointermove',e=>{if(e.pointerId===jid)jm(e)});
 const jup=e=>{if(e.pointerId===jid){jid=null;jx=jz=0;knob.style.transform=''}};joy.addEventListener('pointerup',jup);joy.addEventListener('pointercancel',jup);
 $('jump').addEventListener('pointerdown',e=>{e.stopPropagation();jumpReq=1});
-$('sprint').addEventListener('pointerdown',e=>{e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆'});
+$('sprint').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆';console.log('Sprint toggled:',sprintOn)});
 let dr=null;R.domElement.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX}});
 addEventListener('pointermove',e=>{if(dr&&e.pointerId===dr.id){yaw-=(e.clientX-dr.x)*.006;dr.x=e.clientX}});
 addEventListener('pointerup',e=>{if(dr&&e.pointerId===dr.id)dr=null});
@@ -207,7 +207,7 @@ function update(dt){
  let mx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+jx,mz=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz;
  if(K.KeyQ)yaw+=1.8*dt;if(K.KeyE)yaw-=1.8*dt;
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
- const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?9.5:6.5),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?12:9.5):(touch?8:6.5)),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
  pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;

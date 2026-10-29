@@ -54,6 +54,7 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
 #heat-meter{position:absolute;top:14px;left:14px;width:80px;height:8px;background:rgba(0,0,0,.7);border:2px solid #e74c3c;border-radius:4px;overflow:hidden;z-index:3}
 #heat-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#f39c12,#e74c3c);transition:width .3s}
 #money-display{position:absolute;top:28px;left:14px;font:700 14px var(--head);color:#27ae60;text-shadow:2px 2px 0 #000;z-index:3}
+#shop-btn{position:absolute;top:14px;right:14px;padding:8px 16px;font:12px var(--body);background:linear-gradient(180deg,#27ae60,#1e8449);color:#fff;border:2px solid #000;border-radius:4px;cursor:pointer;pointer-events:auto;z-index:3;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 @media(min-width:768px){
  #heat-meter{top:14px;left:14px}
  #money-display{top:28px;left:14px}
@@ -77,6 +78,7 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  <div id="mission-card"></div>
  <div id="heat-meter"><div id="heat-meter-fill"></div></div>
  <div id="money-display">₦0</div>
+ <button id="shop-btn">SHOP</button>
 </div>
 <div id="ov"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -118,8 +120,8 @@ let playerName='',playerFaculty='',playerDept='';
 const API_BASE=window.BACKEND_URL||'https://futminnadash-backend.onrender.com/api';
 async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
 async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);const data=await res.json();return Array.isArray(data)?data:[]}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
-const ZONES=[[-60,'Gidan Kwano'],[-120,'Gidan Kwano Bus Park'],[-200,'Bosso Campus'],[-270,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
-const GOAL=-288,TIME0=130;
+const ZONES=[[-80,'Gidan Kwano'],[-160,'Gidan Kwano Bus Park'],[-260,'Bosso Campus'],[-340,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
+const GOAL=-360,TIME0=150;
 /* ---------- sound ---------- */
 let AC,muted=false;
 function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
@@ -208,7 +210,7 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null;
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0};
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
@@ -217,6 +219,9 @@ function completeMission(title){const card=$('mission-card');card.innerHTML='<h3
 function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}if(n==='Shunt!')heat=Math.min(100,heat+25);try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
 function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<9){inVehicle=true;currentVehicle=v;pb.position.set(0,0,0);pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz,1500);sfx.good();return}}}
 function exitVehicle(){if(!currentVehicle)return;pb.position.set(currentVehicle.b.position.x,1,currentVehicle.b.position.z+3);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
+function openShop(){if(over||!run)return;ov.style.display='flex';ov.innerHTML='<div class="card"><h2>CAMPUS SHOP</h2><p class="sub">Spend your naira on upgrades</p><div style="display:flex;flex-direction:column;gap:10px"><button onclick="buyUpgrade(\'speed\',200)">Faster Shoes - ₦200<br><small style="font-size:11px;color:var(--muted)">+15% movement speed</small></button><button onclick="buyUpgrade(\'jump\',150)">Power Bank - ₦150<br><small style="font-size:11px;color:var(--muted)">+20% jump height</small></button></div><button class="alt" id="closeShop">Close</button></div>';$('closeShop').onclick=()=>{ov.style.display='none'}}
+function buyUpgrade(type,cost){if(money>=cost){money-=cost;upgrades[type]++;toast(type==='speed'?'Speed upgraded!':'Jump upgraded!',1500);sfx.good();openShop()}else{toast('Not enough money!',1500);sfx.hit()}}
+$('shop-btn').onclick=openShop;
 /* ---------- input ---------- */
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&!inVehicle){tryEnterVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0;if(e.code==='KeyF'&&inVehicle){exitVehicle()}});
 let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');
@@ -239,10 +244,10 @@ function update(dt){
  let mx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+jx,mz=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz;
  if(K.KeyQ)yaw+=1.8*dt;if(K.KeyE)yaw-=1.8*dt;
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
- const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?12:9.5):(touch?8:6.5)),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?15:12):(touch?10:8))*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
  if(inVehicle&&currentVehicle){const accel=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0);currentVehicle.b.velocity.z=currentVehicle.dir*(currentVehicle.sp+accel*5);pb.position.copy(currentVehicle.b.position);pb.position.y=1;pl.position.copy(pb.position)}else{
- const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;
+ const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5*(1+upgrades.jump*.2);jumpReq=0;
  pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
  hz.forEach(h=>{const a=t*h.sp+h.ph;h.b.position.x=h.cx+Math.sin(a)*h.amp;h.b.velocity.set(Math.cos(a)*h.amp*h.sp,0,0);h.mesh.rotation.y=Math.cos(a)>0?Math.PI/2:-Math.PI/2});
  W.step(1/60,dt,3);
@@ -296,7 +301,7 @@ function renderMinimap(){
  ctx.strokeStyle='rgba(242,193,78,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.stroke();
  const px=pb.position.x*scale+center,pz=pb.position.z*scale+center;
  ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.arc(px,pz,4,0,Math.PI*2);ctx.fill();
- const gx=GOAL*scale+center,gz=-288*scale+center;
+ const gx=GOAL*scale+center,gz=GOAL*scale+center;
  ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,5,0,Math.PI*2);ctx.fill();
  ctx.fillStyle='#fff';ctx.font='8px Inter';ctx.fillText('🎓',gx-4,gz+3);
  vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()});

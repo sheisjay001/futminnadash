@@ -212,7 +212,7 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0};
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0};
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
@@ -298,18 +298,24 @@ function cam3(dt){
 const minimapCanvas=$('minimap'),minimapCtx=minimapCanvas.getContext('2d');
 minimapCanvas.width=140;minimapCanvas.height=140;
 function renderMinimap(){
- const ctx=minimapCtx,scale=.35,center=70;
+ const ctx=minimapCtx,scale=.2,center=70;
  ctx.fillStyle='rgba(20,20,30,.9)';ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.fill();
  ctx.strokeStyle='rgba(242,193,78,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.stroke();
  const px=pb.position.x*scale+center,pz=pb.position.z*scale+center;
  ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.arc(px,pz,4,0,Math.PI*2);ctx.fill();
  const gx=GOAL*scale+center,gz=GOAL*scale+center;
- ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,6,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gx,gz,6,0,Math.PI*2);ctx.stroke();
- ctx.fillStyle='#fff';ctx.font='10px Inter';ctx.fillText('🎓',gx-5,gz+4);
- ctx.fillStyle='#fff';ctx.font='8px Inter';ctx.fillText('DEST',gx-10,gz+16);
- vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()});
- hz.forEach(h=>{const hx=h.b.position.x*scale+center,hz=h.b.position.z*scale+center;ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(hx,hz,2,0,Math.PI*2);ctx.fill()});
+ const distFromCenter=Math.hypot(gx-center,gz-center);
+ if(distFromCenter<60){
+  ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='9px Inter';ctx.fillText('🎓',gx-4,gz+3);
+ }else{
+  const angle=Math.atan2(gz-center,gx-center);
+  const ax=center+Math.cos(angle)*55,az=center+Math.sin(angle)*55;
+  ctx.fillStyle='#27ae60';ctx.beginPath();ctx.moveTo(ax,az-6);ctx.lineTo(ax+5,az+4);ctx.lineTo(ax-5,az+4);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='9px Inter';ctx.fillText('🎓',ax-4,az+12);
+ }
+ vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;const vDist=Math.hypot(vx-center,vz-center);if(vDist<65){ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()}});
+ hz.forEach(h=>{const hx=h.b.position.x*scale+center,hz=h.b.position.z*scale+center;const hDist=Math.hypot(hx-center,hz-center);if(hDist<65){ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(hx,hz,2,0,Math.PI*2);ctx.fill()}});
 }
 let last=0;
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;

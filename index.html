@@ -118,7 +118,21 @@ const DEPT_NAMES={
   EDU:'Education',VTE:'Vocational Tech',PHE:'Physical Health',REC:'Recreation',
   MLS:'Medical Lab Science',NRS:'Nursing',HNA:'Human Anatomy',HNP:'Human Physiology',MDS:'Medicine & Surgery'
 };
-let playerName='',playerFaculty='',playerDept='';
+let playerName='',playerFaculty='',playerDept='',money=0,upgrades={speed:0,jump:0};
+try{
+  playerName=localStorage.getItem('fd3Name')||'';
+  playerFaculty=localStorage.getItem('fd3Fac')||'';
+  playerDept=localStorage.getItem('fd3Dept')||'';
+  money=+localStorage.getItem('fd3Money')||0;
+  const savedUpg=JSON.parse(localStorage.getItem('fd3Upg')||'null');
+  if(savedUpg)upgrades=savedUpg;
+}catch(e){}
+function saveProgress(){
+  try{
+    localStorage.setItem('fd3Money',money);
+    localStorage.setItem('fd3Upg',JSON.stringify(upgrades));
+  }catch(e){}
+}
 const API_BASE=window.BACKEND_URL||'https://futminnadash-backend.onrender.com/api';
 async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
 async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);const data=await res.json();return Array.isArray(data)?data:[]}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
@@ -130,13 +144,59 @@ function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)
 function tone(f,d,ty,v,f2){if(muted||!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(t+d)}
 const sfx={good:()=>tone(660,.12,'triangle',.18,990),hit:()=>tone(150,.3,'sawtooth',.2,55),warn:()=>{tone(300,.2,'square',.08);setTimeout(()=>tone(300,.2,'square',.08),250)},zone:()=>{tone(523,.12,'triangle',.15);setTimeout(()=>tone(784,.2,'triangle',.15),120)},over:()=>tone(400,.5,'sawtooth',.15,100),win:()=>{tone(523,.15,'triangle',.2);setTimeout(()=>tone(659,.15,'triangle',.2),150);setTimeout(()=>tone(988,.3,'triangle',.2),300)}};
 let busVoiceCooldown=0,busVoiceAudio=null,shuntAudio=null,busVoiceSource=null,shuntSource=null;
-function loadBusVoice(){try{busVoiceAudio=new Audio('bus-voice.mp3');busVoiceAudio.volume=0.7;busVoiceAudio.load();console.log('Bus voice audio loaded successfully')}catch(e){console.error('Failed to load bus voice audio:',e)}}
-function loadShuntAudio(){try{shuntAudio=new Audio('SHUNT.mp3');shuntAudio.volume=0.8;shuntAudio.load();console.log('Shunt audio loaded successfully')}catch(e){console.error('Failed to load shunt audio:',e)}}
-function playBusVoiceWithEffects(){if(!AC||!busVoiceAudio)return;ac();const ctx=AC;const source=ctx.createMediaElementSource(busVoiceAudio);const compressor=ctx.createDynamicsCompressor();compressor.threshold.value=-24;compressor.knee.value=30;compressor.ratio.value=12;compressor.attack.value=0.003;compressor.release.value=0.25;const eq=ctx.createBiquadFilter();eq.type='peaking';eq.frequency.value=1000;eq.Q.value=1;eq.gain.value=3;const reverb=ctx.createConvolver();const impulseLength=ctx.sampleRate*2;const impulse=ctx.createBuffer(2,impulseLength,ctx.sampleRate);for(let c=0;c<2;c++){const channel=impulse.getChannelData(c);for(let i=0;i<impulseLength;i++){channel[i]=(Math.random()*2-1)*Math.pow(1-i/impulseLength,2)}}reverb.buffer=impulse;const reverbGain=ctx.createGain();reverbGain.gain.value=0.3;const dryGain=ctx.createGain();dryGain.gain.value=0.7;source.connect(compressor);compressor.connect(eq);eq.connect(dryGain);eq.connect(reverb);reverb.connect(reverbGain);reverbGain.connect(ctx.destination);dryGain.connect(ctx.destination);busVoiceSource=source;busVoiceAudio.currentTime=0;busVoiceAudio.play().catch(e=>console.error('Bus voice play failed:',e))}
-function playShuntWithEffects(){if(!AC||!shuntAudio)return;ac();const ctx=AC;const source=ctx.createMediaElementSource(shuntAudio);const compressor=ctx.createDynamicsCompressor();compressor.threshold.value=-20;compressor.knee.value=40;compressor.ratio.value=12;compressor.attack.value=0.003;compressor.release.value=0.25;const eq=ctx.createBiquadFilter();eq.type='peaking';eq.frequency.value=2000;eq.Q.value=1;eq.gain.value=4;const distortion=ctx.createWaveShaper();distortion.curve=new Float32Array(44100);for(let i=0;i<44100;i++){const x=i*2/44100-1;distortion.curve[i]=Math.tanh(x*3)}const distortionGain=ctx.createGain();distortionGain.gain.value=0.15;source.connect(compressor);compressor.connect(eq);eq.connect(distortion);distortion.connect(distortionGain);distortionGain.connect(ctx.destination);eq.connect(ctx.destination);shuntSource=source;shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt play failed:',e))}
+function loadBusVoice(){try{busVoiceAudio=new Audio('bus-voice.mp3');busVoiceAudio.volume=0.7;busVoiceAudio.load()}catch(e){console.error('Failed to load bus voice audio:',e)}}
+function loadShuntAudio(){try{shuntAudio=new Audio('SHUNT.mp3');shuntAudio.volume=0.8;shuntAudio.load()}catch(e){console.error('Failed to load shunt audio:',e)}}
+function playBusVoiceWithEffects(){
+  if(!AC||!busVoiceAudio)return;
+  ac();
+  if(!busVoiceSource){
+    const ctx=AC;
+    const source=ctx.createMediaElementSource(busVoiceAudio);
+    const compressor=ctx.createDynamicsCompressor();
+    compressor.threshold.value=-24;compressor.knee.value=30;compressor.ratio.value=12;compressor.attack.value=0.003;compressor.release.value=0.25;
+    const eq=ctx.createBiquadFilter();
+    eq.type='peaking';eq.frequency.value=1000;eq.Q.value=1;eq.gain.value=3;
+    const reverb=ctx.createConvolver();
+    const impulseLength=ctx.sampleRate*2;
+    const impulse=ctx.createBuffer(2,impulseLength,ctx.sampleRate);
+    for(let c=0;c<2;c++){
+      const channel=impulse.getChannelData(c);
+      for(let i=0;i<impulseLength;i++){channel[i]=(Math.random()*2-1)*Math.pow(1-i/impulseLength,2)}
+    }
+    reverb.buffer=impulse;
+    const reverbGain=ctx.createGain();reverbGain.gain.value=0.3;
+    const dryGain=ctx.createGain();dryGain.gain.value=0.7;
+    source.connect(compressor);compressor.connect(eq);eq.connect(dryGain);eq.connect(reverb);
+    reverb.connect(reverbGain);reverbGain.connect(ctx.destination);dryGain.connect(ctx.destination);
+    busVoiceSource=source;
+  }
+  busVoiceAudio.currentTime=0;
+  busVoiceAudio.play().catch(e=>console.error('Bus voice play failed:',e));
+}
+function playShuntWithEffects(){
+  if(!AC||!shuntAudio)return;
+  ac();
+  if(!shuntSource){
+    const ctx=AC;
+    const source=ctx.createMediaElementSource(shuntAudio);
+    const compressor=ctx.createDynamicsCompressor();
+    compressor.threshold.value=-20;compressor.knee.value=40;compressor.ratio.value=12;compressor.attack.value=0.003;compressor.release.value=0.25;
+    const eq=ctx.createBiquadFilter();
+    eq.type='peaking';eq.frequency.value=2000;eq.Q.value=1;eq.gain.value=4;
+    const distortion=ctx.createWaveShaper();
+    distortion.curve=new Float32Array(44100);
+    for(let i=0;i<44100;i++){const x=i*2/44100-1;distortion.curve[i]=Math.tanh(x*3)}
+    const distortionGain=ctx.createGain();distortionGain.gain.value=0.15;
+    source.connect(compressor);compressor.connect(eq);eq.connect(distortion);
+    distortion.connect(distortionGain);distortionGain.connect(ctx.destination);eq.connect(ctx.destination);
+    shuntSource=source;
+  }
+  shuntAudio.currentTime=0;
+  shuntAudio.play().catch(e=>console.error('Shunt play failed:',e));
+}
 loadBusVoice();
 loadShuntAudio();
-function speak(text){console.log('speak called, muted:',muted,'cooldown:',busVoiceCooldown);if(muted||busVoiceCooldown>0){console.log('speak blocked - muted or cooldown');return}if(busVoiceAudio){playBusVoiceWithEffects();busVoiceCooldown=8}else{console.log('busVoiceAudio is null')}}
+function speak(text){if(muted||busVoiceCooldown>0)return;if(busVoiceAudio){playBusVoiceWithEffects();busVoiceCooldown=8}}
 /* ---------- renderer, scene, lights ---------- */
 const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;
@@ -219,27 +279,28 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,20);W.addBody(pb);
-let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0};
+let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,heat=0,inVehicle=false,currentVehicle=null;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
-pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
+$('money-display').textContent='₦'+money;
+pb.addEventListener('collide',e=>{if(run&&!inVehicle&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
 function showMission(title,objective){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p>'+objective+'</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),4000)}
 function completeMission(title){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p class="complete">MISSION COMPLETE!</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),3000);sfx.good()}
 function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){playShuntWithEffects()}if(n==='Shunt!')heat=Math.min(100,heat+25);try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
-function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<9){inVehicle=true;currentVehicle=v;pb.position.set(0,0,0);pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz,1500);sfx.good();return}}}
-function exitVehicle(){if(!currentVehicle)return;pb.position.set(currentVehicle.b.position.x,1,currentVehicle.b.position.z+3);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
-function openShop(){if(over||!run)return;run=false;ov.style.display='flex';ov.innerHTML='<div class="card"><h2>CAMPUS SHOP</h2><p class="sub">Spend your naira on upgrades</p><div style="display:flex;flex-direction:column;gap:10px"><button onclick="buyUpgrade(\'speed\',200)">Faster Shoes - ₦200<br><small style="font-size:11px;color:var(--muted)">+15% movement speed</small></button><button onclick="buyUpgrade(\'jump\',150)">Power Bank - ₦150<br><small style="font-size:11px;color:var(--muted)">+20% jump height</small></button></div><button class="alt" id="closeShop">Close</button></div>';$('closeShop').onclick=()=>{ov.style.display='none';run=true}}
-function buyUpgrade(type,cost){if(money>=cost){money-=cost;upgrades[type]++;toast(type==='speed'?'Speed upgraded!':'Jump upgraded!',1500);sfx.good();openShop()}else{toast('Not enough money!',1500);sfx.hit()}}
+function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<12){inVehicle=true;currentVehicle=v;pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz+' (Press F to exit)',1500);sfx.good();return}}}
+function exitVehicle(){if(!currentVehicle)return;currentVehicle.b.velocity.z=currentVehicle.dir*currentVehicle.sp;pb.position.set(currentVehicle.b.position.x+2,1,currentVehicle.b.position.z);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
+function openShop(){if(over||!run)return;run=false;ov.style.display='flex';ov.innerHTML='<div class="card"><h2>CAMPUS SHOP</h2><p class="sub">Balance: <strong style="color:#27ae60">₦'+money+'</strong> · Spend your naira on upgrades</p><div style="display:flex;flex-direction:column;gap:10px"><button onclick="buyUpgrade(\'speed\',200)">Faster Shoes (Lv '+upgrades.speed+') - ₦200<br><small style="font-size:11px;color:#1b0f00">+15% movement speed</small></button><button onclick="buyUpgrade(\'jump\',150)">Power Bank (Lv '+upgrades.jump+') - ₦150<br><small style="font-size:11px;color:#1b0f00">+20% jump height</small></button></div><button class="alt" id="closeShop">Close</button></div>';$('closeShop').onclick=()=>{ov.style.display='none';run=true}}
+function buyUpgrade(type,cost){if(money>=cost){money-=cost;upgrades[type]++;saveProgress();$('money-display').textContent='₦'+money;toast(type==='speed'?'Speed upgraded!':'Jump upgraded!',1500);sfx.good();openShop()}else{toast('Not enough money!',1500);sfx.hit()}}
 $('shop-btn').onclick=openShop;
 /* ---------- input ---------- */
-const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&!inVehicle){tryEnterVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0;if(e.code==='KeyF'&&inVehicle){exitVehicle()}});
+const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&run){if(!inVehicle)tryEnterVehicle();else exitVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
 let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');
 function jm(e){const r=jc.width/2;let dx=e.clientX-(jc.left+r),dy=e.clientY-(jc.top+r);const l=Math.hypot(dx,dy)||1,k=Math.min(l,r)/l;dx*=k;dy*=k;knob.style.transform='translate('+dx+'px,'+dy+'px)';jx=dx/r;jz=-dy/r}
 joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid);jc=joy.getBoundingClientRect();jm(e)});
 joy.addEventListener('pointermove',e=>{if(e.pointerId===jid)jm(e)});
 const jup=e=>{if(e.pointerId===jid){jid=null;jx=jz=0;knob.style.transform=''}};joy.addEventListener('pointerup',jup);joy.addEventListener('pointercancel',jup);
 $('jump').addEventListener('pointerdown',e=>{e.stopPropagation();jumpReq=1});
-$('sprint').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆';console.log('Sprint toggled:',sprintOn)});
+$('sprint').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆'});
 let dr=null;R.domElement.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX}});
 addEventListener('pointermove',e=>{if(dr&&e.pointerId===dr.id){yaw-=(e.clientX-dr.x)*.006;dr.x=e.clientX}});
 addEventListener('pointerup',e=>{if(dr&&e.pointerId===dr.id)dr=null});

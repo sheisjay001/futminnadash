@@ -122,8 +122,8 @@ let playerName='',playerFaculty='',playerDept='';
 const API_BASE=window.BACKEND_URL||'https://futminnadash-backend.onrender.com/api';
 async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
 async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);const data=await res.json();return Array.isArray(data)?data:[]}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
-const ZONES=[[-80,'Gidan Kwano'],[-160,'Gidan Kwano Bus Park'],[-260,'Bosso Campus'],[-340,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
-const GOAL=-360,TIME0=150;
+const ZONES=[[-60,'Gidan Kwano'],[-120,'Gidan Kwano Bus Park'],[-180,'Bosso Campus'],[-240,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
+const GOAL=-250,TIME0=120;
 /* ---------- sound ---------- */
 let AC,muted=false;
 function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
@@ -211,7 +211,7 @@ for(let i=0;i<48;i++){const j=i%3!==0,g=new THREE.Group();
  g.position.set(rnd(-9,9),1.1,-rnd(5,285));scene.add(g);picks.push({g,j,on:1})}
 /* ---------- player ---------- */
 const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,material:mat,fixedRotation:true,linearDamping:.05});
-pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
+pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,20);W.addBody(pb);
 let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,money=0,heat=0,inVehicle=false,currentVehicle=null,upgrades={speed:0,jump:0};
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
 pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});

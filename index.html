@@ -187,7 +187,7 @@ const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,materi
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,14);W.addBody(pb);
 let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=0,face=0,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
-pb.addEventListener('collide',e=>{if(run&&e.body.hz)hurt(e.body.hz)});
+pb.addEventListener('collide',e=>{if(run&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else{hurt(e.body.hz)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
 function hurt(n){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();if(shuntAudio){shuntAudio.currentTime=0;shuntAudio.play().catch(e=>console.error('Shunt audio play failed:',e))}try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
 /* ---------- input ---------- */
@@ -218,7 +218,7 @@ function update(dt){
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5;jumpReq=0;
  hz.forEach(h=>{const a=t*h.sp+h.ph;h.b.position.x=h.cx+Math.sin(a)*h.amp;h.b.velocity.set(Math.cos(a)*h.amp*h.sp,0,0);h.mesh.rotation.y=Math.cos(a)>0?Math.PI/2:-Math.PI/2});
  W.step(1/60,dt,3);
- vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-312)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-312;if(v.sp===3.2){const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<25&&busVoiceCooldown<=0)speak('better commot for road ohh')}}v.g.position.set(v.b.position.x,0,v.b.position.z)});
+ vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-312)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-312}v.g.position.set(v.b.position.x,0,v.b.position.z)});
  hz.forEach(h=>{h.mesh.position.set(h.b.position.x,h.mesh.isGroup&&h.b.shapes[0].type===CANNON.Shape.types.SPHERE?0:0,h.b.position.z);if(h.mesh.l1){h.mesh.l1.position.z=Math.sin(t*10)*.2;h.mesh.l2.position.z=-Math.sin(t*10)*.2}});
  dyn.forEach(d=>{d.mesh.position.copy(d.b.position);d.mesh.quaternion.copy(d.b.quaternion)});
  if(pb.position.x>40)pb.position.x=40;if(pb.position.x<-40)pb.position.x=-40;if(pb.position.z>26)pb.position.z=26;if(pb.position.z<-300)pb.position.z=-300;

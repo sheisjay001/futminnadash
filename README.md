@@ -112,15 +112,15 @@ for(let i=0;i<3;i++)veh('bus',...);     // Number of moving buses
 
 The game connects to a backend API for leaderboard functionality:
 
-- **Base URL**: `https://futminnadash-backend.onrender.com/api`
-- **POST /scores**: Save player score
-- **GET /leaderboard**: Retrieve leaderboard by faculty/department
+- **Base URL**: `https://futminnadash-backend.onrender.com/`
+- **POST /api/scores**: Save player score
+- **GET /api/leaderboard**: Retrieve leaderboard by faculty/department
 
 To use your own backend, set `window.BACKEND_URL` before loading the script:
 
 ```html
 <script>
-window.BACKEND_URL = 'https://your-backend.com/api';
+window.BACKEND_URL = 'https://your-backend.com/';
 </script>
 ```
 

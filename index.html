@@ -160,8 +160,8 @@ function saveProgress(){
   }catch(e){}
 }
 const API_BASE=window.BACKEND_URL||'https://futminnadash-backend.onrender.com/api';
-async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
-async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);const data=await res.json();return Array.isArray(data)?data:[]}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
+async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept){console.warn('Cannot save score: missing player data');return}try{const res=await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})});if(!res.ok)console.error('Save score failed:',res.status,res.statusText);else console.log('Score saved successfully')}catch(e){console.error('Failed to save score:',e)}}
+async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);if(!res.ok){console.error('Leaderboard fetch failed:',res.status,res.statusText);return[]}const data=await res.json();return Array.isArray(data)?data:[]}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
 const ZONES=[[-80,'Gidan Kwano'],[-160,'Gidan Kwano Bus Park'],[-240,'Bosso Campus'],[-320,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
 const GOAL=-400,TIME0=180,hallW=50,hallH=20,hallD=20;
 /* ---------- sound ---------- */

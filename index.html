@@ -228,7 +228,7 @@ const R=new THREE.WebGLRenderer({antialias:!touch,powerPreference:'high-performa
 R.shadowMap.enabled=!touch;R.shadowMap.type=THREE.PCFSoftShadowMap;R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;
 document.body.prepend(R.domElement);
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,1,.1,600);
-const SKY=new THREE.Color(0xf0b27a);scene.background=SKY.clone();scene.fog=new THREE.FogExp2(0xf0b27a,.011);
+const SKY=new THREE.Color(0xf0b27a);scene.background=SKY.clone();scene.fog=new THREE.FogExp2(0xf0b27a,.006);
 const hemi=new THREE.HemisphereLight(0xffe0b0,0x3a4a2a,.65);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffc27a,1.5);sun.castShadow=!touch;const SM=touch?512:2048;sun.shadow.mapSize.set(SM,SM);
 Object.assign(sun.shadow.camera,{left:-38,right:38,top:38,bottom:-38,near:1,far:140});sun.shadow.bias=-.0006;scene.add(sun,sun.target);
@@ -282,6 +282,9 @@ mk(new THREE.BoxGeometry(8,hallH-2,1),0x8b4513,0,hallH/2-1,GOAL-hallD/2+hallD/2)
 const door=mk(new THREE.BoxGeometry(7,hallH-4,.2),0x5d4037,0,hallH/2-2,GOAL-hallD/2+hallD/2+.5);
 sign('LECTURE HALL',16,3,'#103a22','#f2c14e',0,hallH-2,GOAL-hallD/2+hallD/2+2);
 const beam=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,40,24,1,true),new THREE.MeshBasicMaterial({color:0xffd24a,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}));beam.position.set(0,20,GOAL);scene.add(beam);
+/* beacon light at lecture hall */
+const beaconLight=new THREE.PointLight(0x27ae60,2,80);beaconLight.position.set(0,30,GOAL);scene.add(beaconLight);
+const beaconMesh=new THREE.Mesh(new THREE.SphereGeometry(1.5,16,16),new THREE.MeshBasicMaterial({color:0x27ae60,transparent:true,opacity:.8}));beaconMesh.position.set(0,30,GOAL);scene.add(beaconMesh);
 /* ---------- vehicles, crowds, goats, props ---------- */
 const vehs=[],hz=[],dyn=[],picks=[];
 function veh(type,x,z,dir,sp,hit){
@@ -455,8 +458,10 @@ function cam3(dt){
 }
 const minimapCanvas=$('minimap'),minimapCtx=minimapCanvas.getContext('2d');
 minimapCanvas.width=140;minimapCanvas.height=140;
+let minimapPulse=0;
 function renderMinimap(){
  const ctx=minimapCtx,scale=.12,center=70;
+ minimapPulse+=.1;
  ctx.fillStyle='rgba(20,20,30,.9)';ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.fill();
  ctx.strokeStyle='rgba(242,193,78,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(center,center,68,0,Math.PI*2);ctx.stroke();
  /* draw road */
@@ -467,17 +472,26 @@ function renderMinimap(){
  ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.arc(px,pz,4,0,Math.PI*2);ctx.fill();
  /* player direction arrow */
  ctx.strokeStyle='#f2c14e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,pz);ctx.lineTo(px+Math.sin(yaw)*6,pz+Math.cos(yaw)*6);ctx.stroke();
+ /* lecture hall - always show with pulsing animation */
  const gx=GOAL*scale+center,gz=GOAL*scale+center;
  const distFromCenter=Math.hypot(gx-center,gz-center);
+ const pulseRadius=5+Math.sin(minimapPulse)*1.5;
  if(distFromCenter<60){
+  /* pulsing ring */
+  ctx.strokeStyle='rgba(39,174,96,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gx,gz,pulseRadius,0,Math.PI*2);ctx.stroke();
   ctx.fillStyle='#27ae60';ctx.beginPath();ctx.arc(gx,gz,5,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#fff';ctx.font='9px Inter';ctx.fillText('🎓',gx-4,gz+3);
  }else{
   const angle=Math.atan2(gz-center,gx-center);
   const ax=center+Math.cos(angle)*55,az=center+Math.sin(angle)*55;
+  /* pulsing ring around arrow */
+  ctx.strokeStyle='rgba(39,174,96,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ax,az,pulseRadius+2,0,Math.PI*2);ctx.stroke();
   ctx.fillStyle='#27ae60';ctx.beginPath();ctx.moveTo(ax,az-6);ctx.lineTo(ax+5,az+4);ctx.lineTo(ax-5,az+4);ctx.closePath();ctx.fill();
   ctx.fillStyle='#fff';ctx.font='9px Inter';ctx.fillText('🎓',ax-4,az+12);
  }
+ /* distance text */
+ const distToGoal=Math.max(0,Math.round(pb.position.z-GOAL));
+ ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='10px Inter';ctx.fillText(distToGoal+'m',center-12,center+58);
  vehs.forEach(v=>{const vx=v.b.position.x*scale+center,vz=v.b.position.z*scale+center;const vDist=Math.hypot(vx-center,vz-center);if(vDist<65){ctx.fillStyle=v.hz==='Alawusa bus!'?'#1f9a4a':v.hz==='Keke!'?'#f39c12':'#e74c3c';ctx.beginPath();ctx.arc(vx,vz,3,0,Math.PI*2);ctx.fill()}});
  hz.forEach(h=>{const hx=h.b.position.x*scale+center,hz=h.b.position.z*scale+center;const hDist=Math.hypot(hx-center,hz-center);if(hDist<65){ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(hx,hz,2,0,Math.PI*2);ctx.fill()}});
 }

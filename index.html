@@ -162,8 +162,8 @@ function saveProgress(){
 const API_BASE=window.BACKEND_URL||'https://futminnadash-backend.onrender.com/api';
 async function saveScore(cgpa,timeRemaining,win){if(!playerName||!playerFaculty||!playerDept)return;try{await fetch(API_BASE+'/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:playerName,faculty:playerFaculty,department:playerDept,cgpa:cgpa,timeRemaining:timeRemaining,win:win,timestamp:Date.now()})})}catch(e){console.error('Failed to save score:',e)}}
 async function getLeaderboard(faculty,dept){try{const params=new URLSearchParams();if(faculty)params.append('faculty',faculty);if(dept)params.append('department',dept);const res=await fetch(API_BASE+'/leaderboard?'+params);const data=await res.json();return Array.isArray(data)?data:[]}catch(e){console.error('Failed to get leaderboard:',e);return[]}}
-const ZONES=[[-60,'Gidan Kwano'],[-120,'Gidan Kwano Bus Park'],[-180,'Bosso Campus'],[-240,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
-const GOAL=-250,TIME0=120,hallW=50,hallH=20,hallD=20;
+const ZONES=[[-80,'Gidan Kwano'],[-160,'Gidan Kwano Bus Park'],[-240,'Bosso Campus'],[-320,'Bosso Bus Park'],[-1e9,'Lecture Hall']];
+const GOAL=-400,TIME0=180,hallW=50,hallH=20,hallD=20;
 /* ---------- sound ---------- */
 let AC,muted=false;
 function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
@@ -328,7 +328,7 @@ function driveStep(dt){const v=currentVehicle,base=v.sp||6;
  v.spd+=(base+th*(th>=0?10:base+4)-v.spd)*Math.min(1,dt*1.5);
  v.hd+=st*dt*1.8*Math.min(1,Math.abs(v.spd)/6)*(v.spd>=0?1:-1);
  v.b.velocity.set(Math.sin(v.hd)*v.spd,0,Math.cos(v.hd)*v.spd);v.g.rotation.y=v.hd;
- const p=v.b.position;if(p.x>14)p.x=14;if(p.x<-14)p.x=-14;if(p.z>24)p.z=24;if(p.z<-298)p.z=-298;
+ const p=v.b.position;if(p.x>14)p.x=14;if(p.x<-14)p.x=-14;if(p.z>24)p.z=24;if(p.z<-448)p.z=-448;
  const d=Math.atan2(Math.sin(v.hd+Math.PI-yaw),Math.cos(v.hd+Math.PI-yaw));yaw+=d*Math.min(1,dt*2.5);
  vehs.forEach(o=>{if(o===v||!o.sp)return;const nm=o.hz||o.b.hz;if(nm&&Math.abs(o.b.position.x-p.x)<3&&Math.abs(o.b.position.z-p.z)<(o.l||5)/2+1.9){hurt(nm,false);v.spd*=.3}});
  hz.forEach(h=>{if(Math.hypot(h.b.position.x-p.x,h.b.position.z-p.z)<2.2){hurt(h.b.hz,h.b.hz==='Shunt!');v.spd*=.4}})}
@@ -408,10 +408,10 @@ function update(dt){
  pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);}
  hz.forEach(h=>{const a=t*h.sp+h.ph;h.b.position.x=h.cx+Math.sin(a)*h.amp;h.b.velocity.set(Math.cos(a)*h.amp*h.sp,0,0);h.mesh.rotation.y=Math.cos(a)>0?Math.PI/2:-Math.PI/2});
  W.step(1/60,dt,3);
- vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-312)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-312}v.g.position.set(v.b.position.x,0,v.b.position.z)});
+ vehs.forEach(v=>{if(v.sp){if(v.dir<0&&v.b.position.z<-462)v.b.position.z=26;if(v.dir>0&&v.b.position.z>26)v.b.position.z=-462}v.g.position.set(v.b.position.x,0,v.b.position.z)});
  hz.forEach(h=>{h.mesh.position.set(h.b.position.x,h.mesh.isGroup&&h.b.shapes[0].type===CANNON.Shape.types.SPHERE?0:0,h.b.position.z);if(h.mesh.l1){h.mesh.l1.position.z=Math.sin(t*10)*.2;h.mesh.l2.position.z=-Math.sin(t*10)*.2}});
  dyn.forEach(d=>{d.mesh.position.copy(d.b.position);d.mesh.quaternion.copy(d.b.quaternion)});
- if(pb.position.x>40)pb.position.x=40;if(pb.position.x<-40)pb.position.x=-40;if(pb.position.z>26)pb.position.z=26;if(pb.position.z<-300)pb.position.z=-300;
+ if(pb.position.x>40)pb.position.x=40;if(pb.position.x<-40)pb.position.x=-40;if(pb.position.z>26)pb.position.z=26;if(pb.position.z<-450)pb.position.z=-450;
  if(!(isFinite(pb.position.x)&&isFinite(pb.position.y)&&isFinite(pb.position.z))){pb.position.set(okX,1,okZ);pb.velocity.set(0,0,0)}else{okX=pb.position.x;okZ=pb.position.z;const vv=Math.hypot(pb.velocity.x,pb.velocity.z);if(vv>22){pb.velocity.x*=22/vv;pb.velocity.z*=22/vv}if(pb.velocity.y>14)pb.velocity.y=14}
  if(inVehicle&&currentVehicle){pb.position.copy(currentVehicle.b.position);pb.position.y=1;pb.velocity.set(0,0,0)}
  pl.position.set(pb.position.x,pb.position.y-.5,pb.position.z);

@@ -90,6 +90,9 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  #bar{width:100px}
  #cr{font-size:9px}
 }
+#drv{display:none;position:absolute;right:26px;bottom:250px;width:84px;height:84px;border-radius:50%;background:rgba(255,61,127,.88);border:2px solid #000;color:#fff;font:700 11px var(--body);pointer-events:auto;touch-action:none;box-shadow:none;padding:0;z-index:3}
+#drv.show{display:block}
+@media(max-width:767px){#drv{width:70px;height:70px;right:12px;bottom:230px}}
 </style>
 </head>
 <body>
@@ -97,7 +100,7 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
  <div id="tl" class="t"><div class="lb">CGPA</div><div class="v" id="cgv">0.00</div><div id="bar"><i></i></div></div>
  <div id="tr" class="t"><div class="lb">Time to 8am</div><div class="v" id="tm">2:10</div><div class="lb" id="zn" style="margin-top:4px;color:#fff">Gidan Kwano</div><div class="lb" id="ds" style="color:#cfd8d2">0 m to lecture hall</div></div>
  <div id="toast" class="t"></div><div id="flash"></div>
- <div id="joy"><div id="knob"></div></div><button id="jump">JUMP</button><button id="sprint">⬆</button>
+ <div id="joy"><div id="knob"></div></div><button id="jump">JUMP</button><button id="sprint">⬆</button><button id="drv">DRIVE</button>
  <div id="cr" class="t">FUTMINNA DASH 3D by Joy Auta · Independent student project, not affiliated with FUT Minna</div>
  <canvas id="minimap"></canvas>
  <div id="mission-card"></div>
@@ -278,7 +281,7 @@ function veh(type,x,z,dir,sp,hit){
  if(type==='bus')[-1,1].forEach(s=>{const sg=new THREE.Mesh(new THREE.PlaneGeometry(6.4,1),new THREE.MeshBasicMaterial({map:label('ALAWUSA',512,80,'#17803a','#ffffff')}));sg.position.set(s*(w/2+.02),h*.55,0);sg.rotation.y=s*Math.PI/2;g.add(sg)});
  g.rotation.y=dir>=0?0:Math.PI;scene.add(g);
  const b=new CANNON.Body({mass:0,type:CANNON.Body.KINEMATIC,material:mat});b.addShape(new CANNON.Box(new CANNON.Vec3(w/2,h/2,l/2)));
- b.position.set(x,h/2,z);b.velocity.set(0,0,dir*sp);b.hz=hit||null;W.addBody(b);vehs.push({g,b,dir,sp,h,l})}
+ b.position.set(x,h/2,z);b.velocity.set(0,0,dir*sp);b.hz=hit||null;W.addBody(b);vehs.push({g,b,dir,sp,h,l,hz:hit||null})}
 for(let i=0;i<7;i++)veh('keke',i%2?3.4:-3.4,-rnd(0,290),i%2?-1:1,rnd(6,9),'Keke!');
 for(let i=0;i<5;i++)veh('okada',i%2?-1.8:1.8,-rnd(0,290),i%2?1:-1,rnd(10,13),'Okada!');
 for(let i=0;i<3;i++)veh('bus',i%2?3.5:-3.5,-rnd(20,280),i%2?-1:1,3.2,'Alawusa bus!');
@@ -304,14 +307,46 @@ const pl=person(0xf2c14e,0x8d5524,0x111111,1),pb=new CANNON.Body({mass:60,materi
 pb.addShape(new CANNON.Sphere(.5));pb.position.set(0,1,20);W.addBody(pb);
 let cg=0,time=TIME0,t=0,run=false,over=false,lh=-9,yaw=Math.PI,face=Math.PI,ev=0,evT=0,nextEv=28,evk=0,zi=0,toastT=0,sprintOn=false,shakeIntensity=0,currentMission=null,missionTimer=0,dayTime=0,heat=0,inVehicle=false,currentVehicle=null;
 const lit={sun:1.5,hemi:.65,fog:.011,nepa:0};
+/* ===== added: phone DRIVE button, real steering, security guards, pedestrians, honking ===== */
+$('drv').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!run)return;inVehicle?exitVehicle():tryEnterVehicle()});
+function nearVeh(){for(const v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<12)return v}return null}
+function driveStep(dt){const v=currentVehicle,base=v.sp||6;
+ const th=Math.max(-1,Math.min(1,(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz)),st=(K.KeyA||K.ArrowLeft?1:0)-(K.KeyD||K.ArrowRight?1:0)-jx;
+ v.spd+=(base+th*(th>=0?10:base+4)-v.spd)*Math.min(1,dt*1.5);
+ v.hd+=st*dt*1.8*Math.min(1,Math.abs(v.spd)/6)*(v.spd>=0?1:-1);
+ v.b.velocity.set(Math.sin(v.hd)*v.spd,0,Math.cos(v.hd)*v.spd);v.g.rotation.y=v.hd;
+ const p=v.b.position;if(p.x>14)p.x=14;if(p.x<-14)p.x=-14;if(p.z>24)p.z=24;if(p.z<-298)p.z=-298;
+ const d=Math.atan2(Math.sin(v.hd+Math.PI-yaw),Math.cos(v.hd+Math.PI-yaw));yaw+=d*Math.min(1,dt*2.5);
+ vehs.forEach(o=>{if(o===v||!o.sp)return;const nm=o.hz||o.b.hz;if(nm&&Math.abs(o.b.position.x-p.x)<3&&Math.abs(o.b.position.z-p.z)<(o.l||5)/2+1.9){hurt(nm,false);v.spd*=.3}});
+ hz.forEach(h=>{if(Math.hypot(h.b.position.x-p.x,h.b.position.z-p.z)<2.2){hurt(h.b.hz,h.b.hz==='Shunt!');v.spd*=.4}})}
+/* security guards: chase when heat is high (1 guard at 20, 2 at 50, 3 at 80) */
+const guards=[];for(let i=0;i<3;i++){const g=person(0x1a2b6b,0x6b3f1d,0x111111,0),b=new CANNON.Body({mass:0,type:CANNON.Body.KINEMATIC,material:mat});b.addShape(new CANNON.Sphere(.5));b.position.set(0,-50,0);W.addBody(b);g.visible=false;guards.push({g,b,on:0})}
+let guardAlert=0;
+function guardsStep(dt){const P=pb.position,n=(heat>=20)+(heat>=50)+(heat>=80);
+ if(n>0&&!guardAlert){guardAlert=1;toast('SECURITY IS AFTER YOU',1800);sfx.warn()}if(n===0)guardAlert=0;
+ guards.forEach((o,i)=>{const on=i<n;
+  if(on&&!o.on){o.on=1;o.g.visible=true;o.b.position.set(rnd(-8,8),.6,Math.min(24,P.z+24))}
+  if(!on&&o.on){o.on=0;o.g.visible=false;o.b.position.set(0,-50,0);o.b.velocity.set(0,0,0)}
+  if(!o.on)return;const dx=P.x-o.b.position.x,dz=P.z-o.b.position.z,d=Math.hypot(dx,dz)||1,s=3.4+heat*.03;
+  o.b.velocity.set(dx/d*s,0,dz/d*s);o.b.position.y=.6;o.g.position.set(o.b.position.x,0,o.b.position.z);o.g.rotation.y=Math.atan2(dx,dz);
+  o.g.l1.position.z=Math.sin(t*11)*.25;o.g.l2.position.z=-Math.sin(t*11)*.25;
+  if(d<1.5){hurt('Security caught you!',false);heat=Math.max(0,heat-30);o.b.position.set(rnd(-8,8),.6,Math.min(24,P.z+30))}})}
+/* pedestrians on the sidewalks, honking traffic, DRIVE button state */
+const peds=[];for(let i=0;i<16;i++){const g=person([0x4a7fb5,0xb5654a,0x7fb54a,0xb54a9a][i%4],i%2?0x6b3f1d:0xc68642,0x1a1a1a,i%3==0),s=i%2?1:-1;peds.push({g,d:i%4<2?1:-1,sp:rnd(1.1,1.8),x:s*8.7+rnd(-.5,.5),z:-rnd(0,290)})}
+let honkCd=0;
+function living(dt){const P=pb.position;
+ peds.forEach(o=>{o.z+=o.d*o.sp*dt;if(o.z>26)o.z=-300;if(o.z<-300)o.z=26;o.g.position.set(o.x,0,o.z);o.g.rotation.y=o.d>0?0:Math.PI;o.g.l1.position.z=Math.sin(t*6+o.x)*.2;o.g.l2.position.z=-Math.sin(t*6+o.x)*.2});
+ honkCd-=dt;if(honkCd<=0)vehs.forEach(v=>{if(!v.sp||v===currentVehicle||honkCd>0)return;const dz=(P.z-v.b.position.z)*v.dir;if(Math.abs(v.b.position.x-P.x)<5&&dz>0&&dz<14){tone(220,.28,'square',.09);honkCd=2+Math.random()*3}});
+ const near=!inVehicle&&nearVeh(),b=$('drv');b.classList.toggle('show',!!near||inVehicle);b.textContent=inVehicle?'EXIT':'DRIVE'}
+
 $('money-display').textContent='₦'+money;
-pb.addEventListener('collide',e=>{if(run&&!inVehicle&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
+pb.addEventListener('collide',e=>{if(run&&!e.body.hz&&dyn.some(d=>d.b===e.body))heat=Math.min(100,heat+3);if(run&&!inVehicle&&e.body.hz){if(e.body.hz==='Alawusa bus!'&&busVoiceCooldown<=0){speak('better commot for road ohh')}else if(e.body.hz==='Shunt!'){hurt(e.body.hz)}else{hurt(e.body.hz,false)}}});
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
 function showMission(title,objective){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p>'+objective+'</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),4000)}
 function completeMission(title){const card=$('mission-card');card.innerHTML='<h3>'+title+'</h3><p class="complete">MISSION COMPLETE!</p>';card.classList.add('show');clearTimeout(missionTimer);missionTimer=setTimeout(()=>card.classList.remove('show'),3000);sfx.good()}
 function hurt(n,playShunt=true){if(t-lh<1)return;lh=t;cg=Math.max(0,cg-.1);time=Math.max(0,time-2);$('flash').style.opacity=.45;setTimeout(()=>$('flash').style.opacity=0,160);toast(n+'  -0.10 CGPA');sfx.hit();shakeIntensity=.5;if(playShunt&&shuntAudio){playShuntWithEffects()}if(n==='Shunt!')heat=Math.min(100,heat+25);try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}}
-function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<12){inVehicle=true;currentVehicle=v;pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz+' (Press F to exit)',1500);sfx.good();return}}}
-function exitVehicle(){if(!currentVehicle)return;currentVehicle.b.velocity.z=currentVehicle.dir*currentVehicle.sp;pb.position.set(currentVehicle.b.position.x+2,1,currentVehicle.b.position.z);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
+function tryEnterVehicle(){for(let v of vehs){if(!v.hz||v.hz==='Alawusa bus!')continue;const dx=v.b.position.x-pb.position.x,dz=v.b.position.z-pb.position.z;if(dx*dx+dz*dz<12){inVehicle=true;currentVehicle=v;v.hd=v.dir>=0?0:Math.PI;v.spd=v.sp||6;pb.velocity.set(0,0,0);pl.visible=false;toast('Entered '+v.hz+' (Press F to exit)',1500);sfx.good();return}}}
+function exitVehicle(){if(!currentVehicle)return;currentVehicle.b.velocity.set(0,0,currentVehicle.dir*currentVehicle.sp);currentVehicle.g.rotation.y=currentVehicle.dir>=0?0:Math.PI;pb.position.set(currentVehicle.b.position.x+2,1,currentVehicle.b.position.z);pb.velocity.set(0,0,0);pl.visible=true;inVehicle=false;currentVehicle=null;toast('Exited vehicle',1500)}
 function openShop(){if(over||!run)return;run=false;ov.style.display='flex';ov.innerHTML='<div class="card"><h2>CAMPUS SHOP</h2><p class="sub">Balance: <strong style="color:#27ae60">₦'+money+'</strong> · Spend your naira on upgrades</p><div style="display:flex;flex-direction:column;gap:10px"><button onclick="buyUpgrade(\'speed\',200)">Faster Shoes (Lv '+upgrades.speed+') - ₦200<br><small style="font-size:11px;color:#1b0f00">+15% movement speed</small></button><button onclick="buyUpgrade(\'jump\',150)">Power Bank (Lv '+upgrades.jump+') - ₦150<br><small style="font-size:11px;color:#1b0f00">+20% jump height</small></button></div><button class="alt" id="closeShop">Close</button></div>';$('closeShop').onclick=()=>{ov.style.display='none';run=true}}
 function buyUpgrade(type,cost){if(money>=cost){money-=cost;upgrades[type]++;saveProgress();$('money-display').textContent='₦'+money;toast(type==='speed'?'Speed upgraded!':'Jump upgraded!',1500);sfx.good();openShop()}else{toast('Not enough money!',1500);sfx.hit()}}
 $('shop-btn').onclick=openShop;
@@ -339,7 +374,7 @@ function update(dt){
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
  const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?15:12):(touch?10:8))*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
- if(inVehicle&&currentVehicle){const accel=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0);currentVehicle.b.velocity.z=currentVehicle.dir*(currentVehicle.sp+accel*5);pb.position.copy(currentVehicle.b.position);pb.position.y=1;pl.position.copy(pb.position)}else{
+ if(inVehicle&&currentVehicle){driveStep(dt);pb.position.copy(currentVehicle.b.position);pb.position.y=1;pl.position.copy(pb.position)}else{
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5*(1+upgrades.jump*.2);jumpReq=0;
  pb.velocity.x+=(dx*sp-pb.velocity.x)*Math.min(1,dt*12);pb.velocity.z+=(dz*sp-pb.velocity.z)*Math.min(1,dt*12);
  hz.forEach(h=>{const a=t*h.sp+h.ph;h.b.position.x=h.cx+Math.sin(a)*h.amp;h.b.velocity.set(Math.cos(a)*h.amp*h.sp,0,0);h.mesh.rotation.y=Math.cos(a)>0?Math.PI/2:-Math.PI/2});
@@ -371,10 +406,10 @@ function update(dt){
  torch.intensity=3.2*lit.nepa;torch.position.set(pb.position.x,2.6,pb.position.z);torch.target.position.set(pb.position.x+Math.sin(face)*10,0,pb.position.z+Math.cos(face)*10);
  /* zones, hud */
  let z=0;while(pb.position.z<ZONES[z][0])z++;if(z!==zi){zi=z;$('zn').textContent=ZONES[z][1];toast(ZONES[z][1].toUpperCase(),2200);sfx.zone()}
- $('cgv').textContent=cg.toFixed(2);$('bar').firstChild.style.width=(cg/5*100)+'%';$('tm').textContent=fmt(Math.max(0,time));
+ $('cgv').textContent=cg.toFixed(2);$('bar i').style.width=(cg/5*100)+'%';$('tm').textContent=fmt(Math.max(0,time));
  $('ds').textContent=Math.max(0,Math.round(pb.position.z-GOAL))+' m to lecture hall';
  /* heat and money */
- heat=Math.max(0,heat-dt*5);$('heat-meter-fill').style.width=heat+'%';$('money-display').textContent='₦'+money;
+ living(dt);guardsStep(dt);heat=Math.max(0,heat-dt*1.5);$('heat-meter-fill').style.width=heat+'%';$('money-display').textContent='₦'+money;
  const doorZ=GOAL-hallD/2+hallD/2;
  if(pb.position.z<doorZ+2&&Math.abs(pb.position.x)<5)finish(true);else if(time<=0)finish(false);
 }
@@ -462,7 +497,7 @@ function finish(win){over=true;run=false;let c=cg;if(win)c=Math.min(5,cg+Math.ma
  $('share').onclick=async()=>{const s=(playerName?playerName+' ('+(DEPT_NAMES[playerDept]||playerDept)+'): ':'')+'I finished FUTMINNA Dash 3D with a '+c.toFixed(2)+' CGPA ('+cls(c)+'). Can you beat me? Created by Joy Auta: '+location.href;
   try{if(navigator.share)await navigator.share({text:s});else{await navigator.clipboard.writeText(s);$('share').textContent='Copied. Paste it on WhatsApp'}}catch(e){}};
  $('leaderboard').onclick=async()=>{const lb=await getLeaderboard(playerFaculty,playerDept);showLeaderboard(lb,playerFaculty,playerDept)}}
-function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Leaderboard':faculty?FACULTIES[faculty]?.name+' Leaderboard':'Overall Leaderboard';const rows=lb.slice(0,10).map((e,i)=>'<tr><td>'+(i+1)+'</td><td>'+e.name+'</td><td>'+Number(e.cgpa).toFixed(2)+'</td><td>'+(DEPT_NAMES[e.department]||e.department)+'</td></tr>').join('');
+function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Leaderboard':faculty?FACULTIES[faculty]?.name+'Leaderboard':'Overall Leaderboard';const rows=lb.slice(0,10).map((e,i)=>'<tr><td>'+(i+1)+'</td><td>'+e.name+'</td><td>'+Number(e.cgpa).toFixed(2)+'</td><td>'+(DEPT_NAMES[e.department]||e.department)+'</td></tr>').join('');
  ov.innerHTML='<div class="card"><h2>'+title+'</h2><table style="width:100%;text-align:left;border-collapse:collapse;font:13px var(--body)"><thead><tr><th>#</th><th>Name</th><th>CGPA</th><th>Department</th></tr></thead><tbody>'+rows+'</tbody></table><button id="closeLB">Close</button></div>';
  $('closeLB').onclick=()=>location.reload()}
 function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}ac();ov.style.display='none';run=true;t=0;toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1];showMission('Reach Class Before 8am','Run from Gidan Kwano to the lecture hall before time runs out. Avoid vehicles and collect jollof for CGPA!')}

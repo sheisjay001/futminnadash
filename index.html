@@ -28,10 +28,11 @@ canvas{display:block}
 #cr{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:10px;opacity:.7}
 #joy{display:none;position:absolute;left:22px;bottom:34px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:rgba(242,193,78,.85)}
+.touch #joy,.touch #knob{display:none}
 #jump{display:none;position:absolute;right:26px;bottom:50px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.8);border:2px solid #000;color:#1b0f00;font:700 13px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none}
 #sprint{display:none;position:absolute;right:26px;bottom:150px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.5);border:2px solid #000;color:#1b0f00;font:700 11px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none;z-index:10}
 #sprint.fast{background:rgba(255,100,50,.9)}
-.touch #joy,.touch #jump,.touch #sprint{display:block}
+.touch #jump,.touch #sprint{display:block}
 #ov{position:fixed;inset:0;display:flex;overflow-y:auto;background:rgba(8,6,14,.88);padding:16px;box-sizing:border-box;z-index:5}
 .card{margin:auto;width:100%;max-width:380px;background:rgba(12,10,18,.96);border:2px solid #ff7a3d;border-radius:6px;box-shadow:6px 6px 0 #000;padding:22px 20px;display:flex;flex-direction:column;gap:13px;box-sizing:border-box}
 .ey{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
@@ -655,16 +656,45 @@ function buyUpgrade(type,cost){if(money>=cost){money-=cost;upgrades[type]++;save
 $('shop-btn').onclick=openShop;
 /* ---------- input ---------- */
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&run){if(!inVehicle)tryEnterVehicle();else exitVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
-let jx=0,jz=0,jid=null,jc,jumpReq=0;const joy=$('joy'),knob=$('knob');
-function jm(e){const r=jc.width/2;let dx=e.clientX-(jc.left+r),dy=e.clientY-(jc.top+r);const l=Math.hypot(dx,dy)||1,k=Math.min(l,r)/l;dx*=k;dy*=k;knob.style.transform='translate('+dx+'px,'+dy+'px)';jx=dx/r;jz=-dy/r}
-joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid);jc=joy.getBoundingClientRect();jm(e)});
-joy.addEventListener('pointermove',e=>{if(e.pointerId===jid)jm(e)});
-const jup=e=>{if(e.pointerId===jid){jid=null;jx=jz=0;knob.style.transform=''}};joy.addEventListener('pointerup',jup);joy.addEventListener('pointercancel',jup);
+let jx=0,jz=0,jumpReq=0;
+/* tap-to-move for touch devices */
+let tapTarget=null,tapId=null;
+R.domElement.addEventListener('pointerdown',e=>{
+ if(touch&&!inVehicle){
+  tapId=e.pointerId;R.domElement.setPointerCapture(tapId);
+  tapTarget={x:e.clientX,y:e.clientY,dragStart:e.clientX};
+ }
+});
+R.domElement.addEventListener('pointermove',e=>{
+ if(tapId&&e.pointerId===tapId){
+  const dx=e.clientX-tapTarget.dragStart;
+  if(Math.abs(dx)>5){
+   yaw-=dx*.006;tapTarget.dragStart=e.clientX;
+  }
+ }
+});
+R.domElement.addEventListener('pointerup',e=>{
+ if(tapId&&e.pointerId===tapId){
+  const dx=e.clientX-tapTarget.x,dy=e.clientY-tapTarget.y;
+  if(Math.hypot(dx,dy)<10){
+   tapTarget.worldX=pb.position.x;tapTarget.worldZ=pb.position.z;
+   const angle=yaw+Math.atan2(dx,dy);
+   tapTarget.worldX+=Math.sin(angle)*5;tapTarget.worldZ+=Math.cos(angle)*5;
+  }else{
+   tapTarget=null;
+  }
+  tapId=null;
+ }
+});
+R.domElement.addEventListener('pointercancel',e=>{if(tapId&&e.pointerId===tapId){tapId=null;tapTarget=null}});
 $('jump').addEventListener('pointerdown',e=>{e.stopPropagation();jumpReq=1});
 $('sprint').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆'});
-let dr=null;R.domElement.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX}});
-addEventListener('pointermove',e=>{if(dr&&e.pointerId===dr.id){yaw-=(e.clientX-dr.x)*.006;dr.x=e.clientX}});
-addEventListener('pointerup',e=>{if(dr&&e.pointerId===dr.id)dr=null});
+let dr=null;
+if(!touch){
+ R.domElement.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX}});
+ addEventListener('pointermove',e=>{if(dr&&e.pointerId===dr.id){yaw-=(e.clientX-dr.x)*.006;dr.x=e.clientX}});
+ addEventListener('pointerup',e=>{if(dr&&e.pointerId===dr.id)dr=null});
+}
 function fit(){R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.fov=innerWidth<innerHeight?70:58;cam.updateProjectionMatrix()}
 addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,250));fit();
 /* ---------- game loop ---------- */
@@ -674,6 +704,17 @@ function update(dt){
  t+=dt;time-=dt;
  let mx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+jx,mz=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz;
  if(K.KeyQ)yaw+=1.8*dt;if(K.KeyE)yaw-=1.8*dt;
+ /* tap-to-move logic */
+ if(touch&&tapTarget&&!inVehicle){
+  const dx=tapTarget.worldX-pb.position.x,dz=tapTarget.worldZ-pb.position.z,dist=Math.hypot(dx,dz);
+  if(dist>0.5){
+   const angle=Math.atan2(dx,dz);
+   mx=Math.sin(angle);mz=Math.cos(angle);
+   if(dist<2){mx*=dist/2;mz*=dist/2}
+  }else{
+   tapTarget=null;
+  }
+ }
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
  const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?15:12):(touch?10:8))*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
@@ -824,7 +865,7 @@ function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Le
  $('closeLB').onclick=()=>location.reload()}
 function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}if(!$('agree').checked){alert('Please tick the privacy box to continue');return}ac();ov.style.display='none';run=true;t=0;startRun();toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1];showMission('Reach Class Before 8am','Run from Gidan Kwano to the lecture hall before time runs out. Avoid vehicles and collect jollof for CGPA!')}
 function menu(){
- const ctl=touch?'Left thumb: move. Drag anywhere else: look around. JUMP and sprint buttons are on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
+ const ctl=touch?'Tap anywhere to move in that direction. Drag horizontally to look around. JUMP and sprint buttons are on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
  ov.innerHTML='<div class="card menu"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>DASH 3D</h1><p class="sub" style="margin-top:6px">Daily challenge: <strong>'+DM[dayMod][0]+'</strong> &middot; Badges '+Object.keys(getBadges()).length+'/6</p></div>'+
  '<div class="mcols"><div><h2>Player registration</h2><input type="text" id="pname" class="fld" placeholder="Enter your name" autocomplete="off" maxlength="30"><select id="pfaculty" class="fld"><option value="">Select Faculty</option>'+Object.keys(FACULTIES).map(k=>'<option value="'+k+'">'+FACULTIES[k].name+'</option>').join('')+'</select><select id="pdept" class="fld" disabled><option value="">Select Department</option></select>'+
  '<label class="sm" style="display:flex;gap:8px;text-align:left;margin:8px 0 12px"><input type="checkbox" id="agree" style="flex:none;width:20px;height:20px"><span>I agree that my name, faculty, department and score are shown on the leaderboard.</span></label>'+

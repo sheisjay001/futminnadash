@@ -701,7 +701,7 @@ function update(dt){
   mz+=dpadState.up-dpadState.down;
  }
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
- const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?(touch?15:12):(touch?10:8))*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?12:8)*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
  if(inVehicle&&currentVehicle){driveStep(dt);pb.position.copy(currentVehicle.b.position);pb.position.y=1;pl.position.copy(pb.position)}else{
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5*(1+upgrades.jump*.2);jumpReq=0;

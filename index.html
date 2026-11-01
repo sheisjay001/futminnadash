@@ -95,6 +95,73 @@ button.alt{background:#181820;color:#f4f1ea;border:2px solid #3a3946;box-shadow:
 #drv.show{display:block}
 @media(max-width:767px){#drv{width:70px;height:70px;right:12px;bottom:230px}}
 #pause{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:auto;padding:6px 12px;font-size:11px;pointer-events:auto;z-index:3;background:rgba(8,6,14,.7);color:#fff;border:2px solid #3a3946;box-shadow:none}
+
+/* ===== responsive layout: phones (portrait + landscape), tablets, desktop ===== */
+:root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+input,select,textarea{-webkit-user-select:text;user-select:text}
+#ov,.card{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.fld{width:100%;padding:11px;margin:4px 0;font:16px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box}
+.card{max-width:min(420px,100%)}
+.mcols{display:flex;flex-direction:column;gap:12px}
+.mcols>div{min-width:0}
+details.sec>summary{cursor:pointer;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:11px;color:var(--muted);padding:8px 0}
+details.sec p{margin:6px 0}
+#cr{pointer-events:none}
+.big{font-size:clamp(52px,16vw,76px)}
+@media (max-width:767px),(pointer:coarse){
+ #tl{top:calc(8px + var(--st));left:calc(10px + var(--sl))}
+ #tr{top:calc(8px + var(--st));right:calc(10px + var(--sr))}
+ #tr .lb{font-size:9px;letter-spacing:.08em}
+ .v{font-size:24px}
+ #bar{width:100px}
+ #heat-meter{top:calc(66px + var(--st));left:calc(10px + var(--sl));width:70px}
+ #money-display{top:calc(80px + var(--st));left:calc(10px + var(--sl));font-size:12px}
+ #minimap{top:calc(102px + var(--st));left:calc(10px + var(--sl));bottom:auto;right:auto;width:84px;height:84px}
+ #pause{top:calc(96px + var(--st));right:calc(10px + var(--sr));left:auto;transform:none}
+ #shop-btn{top:calc(96px + var(--st));right:calc(84px + var(--sr));bottom:auto;left:auto;width:36px;height:36px;font-size:14px}
+ #joy{width:112px;height:112px;left:calc(14px + var(--sl));bottom:calc(22px + var(--sb))}
+ #knob{left:37px;top:37px;width:38px;height:38px}
+ #jump,#sprint,#drv{width:62px;height:62px;right:calc(14px + var(--sr));font-size:10px;letter-spacing:.04em}
+ #jump{bottom:calc(22px + var(--sb))}#sprint{bottom:calc(96px + var(--sb))}#drv{bottom:calc(170px + var(--sb))}
+ #mission-card{top:calc(150px + var(--st));min-width:0;width:calc(100% - 28px);padding:8px 12px}
+ #cr{display:none}
+ #toast{font-size:22px;top:30%}
+ .card{padding:16px}
+ h1{font-size:clamp(30px,9vw,44px)}
+}
+@media (max-height:520px){
+ #tl{top:calc(6px + var(--st))}.v{font-size:20px}#bar{width:90px}
+ #tr{top:calc(6px + var(--st))}#tr .lb{font-size:8px}
+ #heat-meter{top:calc(52px + var(--st));width:60px}
+ #money-display{top:calc(64px + var(--st))}
+ #minimap{top:calc(84px + var(--st));width:72px;height:72px}
+ #pause{top:calc(6px + var(--st));right:auto;left:50%;transform:translateX(-50%)}
+ #shop-btn{top:calc(84px + var(--st));right:calc(10px + var(--sr));width:34px;height:34px}
+ #joy{width:98px;height:98px;bottom:calc(10px + var(--sb))}
+ #knob{left:31px;top:31px;width:36px;height:36px}
+ #jump,#sprint,#drv{width:54px;height:54px;bottom:calc(10px + var(--sb))}
+ #jump{right:calc(18px + var(--sr))}#sprint{right:calc(82px + var(--sr))}#drv{right:calc(146px + var(--sr))}
+ #mission-card{top:calc(44px + var(--st));width:min(60%,420px)}
+ #toast{top:14%;font-size:20px}
+ .card{padding:12px;gap:8px;max-width:min(760px,100%)}
+ h1{font-size:28px}.big{font-size:44px}
+ .card.menu{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:8px;align-items:start}
+ .card.menu .mcols{display:contents}
+ .card.menu>div:first-child{grid-column:1;grid-row:1}
+ .card.menu .mcols>div:first-child{grid-column:2;grid-row:1/span 3}
+ .card.menu .mcols>div:last-child{grid-column:1;grid-row:2}
+ .card.menu>.sm{grid-column:1;grid-row:3}
+ .fld{padding:8px;margin:2px 0}
+}
+@media (min-width:900px) and (min-height:560px){
+ .card.menu{max-width:900px;display:grid;grid-template-columns:1.1fr .9fr;column-gap:28px;row-gap:10px;align-items:start}
+ .card.menu .mcols{display:contents}
+ .card.menu>div:first-child{grid-column:1;grid-row:1}
+ .card.menu .mcols>div:first-child{grid-column:2;grid-row:1/span 3}
+ .card.menu .mcols>div:last-child{grid-column:1;grid-row:2}
+ .card.menu>.sm{grid-column:1;grid-row:3}
+ details.sec>summary{pointer-events:none;cursor:default}
+}
 </style>
 </head>
 <body>
@@ -233,7 +300,7 @@ const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,1,.1,600);
 const SKY=new THREE.Color(0xf0b27a);scene.background=SKY.clone();scene.fog=new THREE.FogExp2(0xf0b27a,.006);
 const hemi=new THREE.HemisphereLight(0xffe0b0,0x3a4a2a,.65);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffc27a,1.5);sun.castShadow=!touch;const SM=touch?512:2048;sun.shadow.mapSize.set(SM,SM);
-Object.assign(sun.shadow.camera,{left:-38,right:38,top:38,bottom:-38,near:1,far:140});sun.shadow.bias=-.0006;scene.add(sun,sun.target);
+Object.assign(sun.shadow.camera,{left:-38,right:38,top:38,bottom:38,near:1,far:140});sun.shadow.bias=-.0006;scene.add(sun,sun.target);
 const torch=new THREE.SpotLight(0xfff2cc,0,45,.55,.5,1);torch.castShadow=false;scene.add(torch,torch.target);
 /* ---------- physics ---------- */
 const W=new CANNON.World();W.gravity.set(0,-22,0);W.broadphase=new CANNON.NaiveBroadphase();W.solver.iterations=8;
@@ -544,7 +611,7 @@ function startRun(){started=true;runHits=runShunts=runJollof=driveTime=0;heatMul
 function makeCard(c,win){const k=document.createElement('canvas');k.width=720;k.height=960;const x=k.getContext('2d');
  const g=x.createLinearGradient(0,0,0,960);g.addColorStop(0,'#2a0a4a');g.addColorStop(1,'#07060c');x.fillStyle=g;x.fillRect(0,0,720,960);
  x.fillStyle='#5b2a86';x.fillRect(0,0,720,14);x.textAlign='center';x.fillStyle='#f2c14e';x.font='700 30px Arial';x.fillText('TECHNOLOGY FOR EMPOWERMENT',360,90);
- x.fillStyle='#fff';x.font='900 84px Arial Black,Arial';x.fillText('FUTMINNA',360,210);x.fillStyle='#ff7a3d';x.fillText('DASH 3D',360,300);
+ x.fillStyle='#fff';x.font='900 84px Arial Black,Arial';x.fillText('FUTMINNA',360,210);x.fillText('DASH 3D',360,300);
  x.fillStyle='#f2c14e';x.font='900 220px Arial Black,Arial';x.fillText(c.toFixed(2),360,560);
  x.fillStyle='#fff';x.font='700 44px Arial';x.fillText(cls(c),360,630);
  x.font='600 30px Arial';x.fillStyle='#cfd8d2';x.fillText((playerName||'Student')+(playerDept?' | '+(DEPT_NAMES[playerDept]||playerDept):''),360,700);
@@ -757,17 +824,15 @@ function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Le
  $('closeLB').onclick=()=>location.reload()}
 function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}if(!$('agree').checked){alert('Please tick the privacy box to continue');return}ac();ov.style.display='none';run=true;t=0;startRun();toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1];showMission('Reach Class Before 8am','Run from Gidan Kwano to the lecture hall before time runs out. Avoid vehicles and collect jollof for CGPA!')}
 function menu(){
- ov.innerHTML='<div class="card"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>Dash 3D</h1></div>'+
- '<p class="sub">It is 7:55am. Run, jump and dodge your way from Gidan Kwano to the lecture hall before 8am. Collect jollof and lecture notes to lift your CGPA.</p>'+
- '<div><h2>Daily challenge &middot; '+DAY+'</h2><p class="sub"><strong>'+DM[dayMod][0]+':</strong> '+DM[dayMod][1]+'. Badges earned: '+Object.keys(getBadges()).length+'/6</p></div>'+'<div><h2>Controls</h2><p class="sub">'+(touch?'Left thumb: move. Drag anywhere else: look around. Jump button: jump.':'WASD or arrows: move. Shift: sprint. Space: jump. Drag the mouse or press Q / E: turn the camera.')+'</p></div>'+
- '<div><h2>Watch out for</h2><p class="sub">Keke, okada and the slow Alawusa bus. Goats on the road. The shunt at the bus parks. NEPA outages (use your torch) and Harmattan dust. Traffic cones and drums are real physics objects: knock them about.</p></div>'+
- '<div><h2>Player Registration</h2><p class="sub"><input type="text" id="pname" placeholder="Enter your name" style="width:100%;padding:10px;margin:5px 0;font:14px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box"></p>'+
- '<p class="sub"><select id="pfaculty" style="width:100%;padding:10px;margin:5px 0;font:14px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box"><option value="">Select Faculty</option>'+
- Object.keys(FACULTIES).map(k=>'<option value="'+k+'">'+FACULTIES[k].name+'</option>').join('')+'</select></p>'+
- '<p class="sub"><select id="pdept" style="width:100%;padding:10px;margin:5px 0;font:14px var(--body);border:2px solid #000;border-radius:4px;box-sizing:border-box" disabled><option value="">Select Department</option></select></p></div>'+
- '<label class="sm" style="display:flex;gap:8px;text-align:left"><input type="checkbox" id="agree"><span>I agree that my name, faculty, department and score are shown on the leaderboard.</span></label><details class="sm" style="text-align:left"><summary>Privacy notice</summary>We store only your name, faculty, department, score and time on our server to run the leaderboard. Your settings, badges and money stay on your own phone. We do not sell data. To remove your entry, contact Joy Auta.</details>'+'<button class="alt" id="facrank">Faculty ranking</button><button id="go">Start</button><div class="sm">Created by Joy Auta &middot; &copy; 2026 All rights reserved<br>Independent student project. Not affiliated with or endorsed by FUT Minna.</div></div>';
+ const ctl=touch?'Left thumb: move. Drag anywhere else: look around. JUMP and sprint buttons are on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
+ ov.innerHTML='<div class="card menu"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>DASH 3D</h1><p class="sub" style="margin-top:6px">Daily challenge: <strong>'+DM[dayMod][0]+'</strong> &middot; Badges '+Object.keys(getBadges()).length+'/6</p></div>'+
+ '<div class="mcols"><div><h2>Player registration</h2><input type="text" id="pname" class="fld" placeholder="Enter your name" autocomplete="off" maxlength="30"><select id="pfaculty" class="fld"><option value="">Select Faculty</option>'+Object.keys(FACULTIES).map(k=>'<option value="'+k+'">'+FACULTIES[k].name+'</option>').join('')+'</select><select id="pdept" class="fld" disabled><option value="">Select Department</option></select>'+
+ '<label class="sm" style="display:flex;gap:8px;text-align:left;margin:8px 0 12px"><input type="checkbox" id="agree" style="flex:none;width:20px;height:20px"><span>I agree that my name, faculty, department and score are shown on the leaderboard.</span></label>'+
+  '<button id="go">Start</button><button class="alt" id="facrank" style="margin-top:8px">Faculty ranking</button><details class="sm" style="text-align:left;margin-top:10px"><summary>Privacy notice</summary>We store only your name, faculty, department, score and time on our server to run the leaderboard. Your settings, badges and money stay on your own phone. We do not sell data. To remove your entry, contact Joy Auta.</details></div>'+
+ '<div><details class="sec"'+(innerWidth>=900&&innerHeight>=560?' open':'')+'><summary>How to play</summary><p class="sub">It is 7:55am. Run, jump and dodge your way from Gidan Kwano to the lecture hall before 8am. Collect jollof and lecture notes to lift your CGPA.</p><p class="sub"><strong>Daily challenge '+DAY+':</strong> '+DM[dayMod][0]+'. '+DM[dayMod][1]+'.</p><p class="sub"><strong>Controls.</strong> '+ctl+'</p><p class="sub"><strong>Watch out for.</strong> Keke, okada and the slow Alawusa bus. Goats on the road. The shunt at the bus parks. NEPA outages (use your torch), Harmattan dust and rain. Traffic cones and drums are real physics objects: knock them about.</p></details></div></div>'+
+ '<div class="sm">Created by Joy Auta &middot; &copy; 2026 All rights reserved<br>Independent student project. Not affiliated with or endorsed by FUT Minna.</div></div>';
  $('go').onclick=begin;$('facrank').onclick=()=>showFacultyRank($('facrank'));
- $('pfaculty').onchange=()=>{const f=$('pfaculty').value;const d=$('pdept');d.disabled=!f;d.innerHTML='<option value="">Select Department</option>'+(f?FACULTIES[f].depts.map(x=>'<option value="'+x+'">'+DEPT_NAMES[x]||x+'</option>').join(''):'')}}
+ $('pfaculty').onchange=()=>{const f=$('pfaculty').value,d=$('pdept');d.disabled=!f;d.innerHTML='<option value="">Select Department</option>'+(f?FACULTIES[f].depts.map(x=>'<option value="'+x+'">'+(DEPT_NAMES[x]||x)+'</option>').join(''):'')}}
 menu();requestAnimationFrame(frame);
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>

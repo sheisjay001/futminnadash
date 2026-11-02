@@ -26,18 +26,17 @@ canvas{display:block}
 #toast{position:absolute;left:0;right:0;top:22%;text-align:center;font:30px var(--head);color:#ff7a3d;opacity:0;transition:opacity .3s}
 #flash{position:absolute;inset:0;background:#e5232b;opacity:0;transition:opacity .25s}
 #cr{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:10px;opacity:.7}
-#dpad{display:none;position:absolute;left:14px;bottom:34px;width:130px;height:130px;pointer-events:auto}
-#dpad button{position:absolute;width:44px;height:44px;border-radius:8px;background:rgba(242,193,78,.7);border:2px solid #000;color:#1b0f00;font:700 16px var(--body);padding:0;cursor:pointer;touch-action:none;box-shadow:2px 2px 0 #000}
-#dpad button:active{background:rgba(242,193,78,1);transform:scale(.95)}
-#dpad-up{top:0;left:50%;transform:translateX(-50%)}
-#dpad-down{bottom:0;left:50%;transform:translateX(-50%)}
-#dpad-left{left:0;top:50%;transform:translateY(-50%)}
-#dpad-right{right:0;top:50%;transform:translateY(-50%)}
-.touch #dpad{display:block}
+#speed-buttons{display:none;position:absolute;right:26px;bottom:150px;width:84px;height:84px;pointer-events:auto;z-index:10}
+.speed-btn{position:absolute;width:38px;height:38px;border-radius:50%;background:rgba(242,193,78,.5);border:2px solid #000;color:#1b0f00;font:700 11px var(--body);padding:0;cursor:pointer;touch-action:none;transition:all .15s}
+.speed-btn:active{transform:scale(.9)}
+.speed-btn.active{background:rgba(255,100,50,.9);box-shadow:0 0 10px rgba(255,100,50,.5)}
+#speed-1{top:0;left:50%;transform:translateX(-50%)}
+#speed-2{top:50%;left:0;transform:translateY(-50%)}
+#speed-3{top:50%;right:0;transform:translateY(-50%)}
+#speed-4{bottom:0;left:50%;transform:translateX(-50%)}
+.touch #speed-buttons{display:block}
 #jump{display:none;position:absolute;right:26px;bottom:50px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.8);border:2px solid #000;color:#1b0f00;font:700 13px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none}
-#sprint{display:none;position:absolute;right:26px;bottom:150px;width:84px;height:84px;border-radius:50%;background:rgba(242,193,78,.5);border:2px solid #000;color:#1b0f00;font:700 11px var(--body);letter-spacing:.08em;pointer-events:auto;touch-action:none;z-index:10}
-#sprint.fast{background:rgba(255,100,50,.9)}
-.touch #jump,.touch #sprint{display:block}
+.touch #jump{display:block}
 #ov{position:fixed;inset:0;display:flex;overflow-y:auto;background:rgba(8,6,14,.88);padding:16px;box-sizing:border-box;z-index:5}
 .card{margin:auto;width:100%;max-width:380px;background:rgba(12,10,18,.96);border:2px solid #ff7a3d;border-radius:6px;box-shadow:6px 6px 0 #000;padding:22px 20px;display:flex;flex-direction:column;gap:13px;box-sizing:border-box}
 .ey{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
@@ -175,7 +174,7 @@ details.sec p{margin:6px 0}
  <div id="tl" class="t"><div class="lb">CGPA</div><div class="v" id="cgv">0.00</div><div id="bar"><i></i></div></div>
  <div id="tr" class="t"><div class="lb">Time to 8am</div><div class="v" id="tm">2:10</div><div class="lb" id="zn" style="margin-top:4px;color:#fff">Gidan Kwano</div><div class="lb" id="ds" style="color:#cfd8d2">0 m to lecture hall</div></div>
  <div id="toast" class="t"></div><div id="flash"></div>
- <div id="dpad"><button id="dpad-up">▲</button><button id="dpad-down">▼</button><button id="dpad-left">◀</button><button id="dpad-right">▶</button></div><button id="jump">JUMP</button><button id="sprint">⬆</button><button id="drv">DRIVE</button><button id="pause">PAUSE</button>
+ <button id="jump">JUMP</button><div id="speed-buttons"><button id="speed-1" class="speed-btn active">1X</button><button id="speed-2" class="speed-btn">2X</button><button id="speed-3" class="speed-btn">3X</button><button id="speed-4" class="speed-btn">4X</button></div><button id="drv">DRIVE</button><button id="pause">PAUSE</button>
  <div id="cr" class="t">FUTMINNA DASH 3D by Joy Auta · Independent student project, not affiliated with FUT Minna</div>
  <canvas id="minimap"></canvas>
  <div id="mission-card"></div>
@@ -662,24 +661,43 @@ $('shop-btn').onclick=openShop;
 /* ---------- input ---------- */
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&run){if(!inVehicle)tryEnterVehicle();else exitVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
 let jx=0,jz=0,jumpReq=0;
-/* D-pad for touch devices */
-const dpadState={up:0,down:0,left:0,right:0};
+/* tap-to-move for touch devices */
+let tapTarget=null,tapId=null;
 if(touch){
- $('dpad-up').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dpadState.up=1});
- $('dpad-up').addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();dpadState.up=0});
- $('dpad-up').addEventListener('pointercancel',e=>{dpadState.up=0});
- $('dpad-down').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dpadState.down=1});
- $('dpad-down').addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();dpadState.down=0});
- $('dpad-down').addEventListener('pointercancel',e=>{dpadState.down=0});
- $('dpad-left').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dpadState.left=1});
- $('dpad-left').addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();dpadState.left=0});
- $('dpad-left').addEventListener('pointercancel',e=>{dpadState.left=0});
- $('dpad-right').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dpadState.right=1});
- $('dpad-right').addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();dpadState.right=0});
- $('dpad-right').addEventListener('pointercancel',e=>{dpadState.right=0});
+ R.domElement.addEventListener('pointerdown',e=>{
+  if(!inVehicle){
+   tapId=e.pointerId;R.domElement.setPointerCapture(tapId);
+   tapTarget={x:e.clientX,y:e.clientY};
+  }
+ });
+ R.domElement.addEventListener('pointerup',e=>{
+  if(tapId&&e.pointerId===tapId){
+   const dx=e.clientX-tapTarget.x,dy=e.clientY-tapTarget.y;
+   if(Math.hypot(dx,dy)<20){
+    tapTarget.worldX=pb.position.x;tapTarget.worldZ=pb.position.z;
+    const angle=yaw+Math.atan2(dx,dy);
+    tapTarget.worldX+=Math.sin(angle)*8;tapTarget.worldZ+=Math.cos(angle)*8;
+   }else{
+    tapTarget=null;
+   }
+   tapId=null;
+  }
+ });
+ R.domElement.addEventListener('pointercancel',e=>{if(tapId&&e.pointerId===tapId){tapId=null;tapTarget=null}});
+}
+/* speed buttons for touch devices */
+let speedMultiplier=1;
+if(touch){
+ $('speed-1').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();speedMultiplier=1;updateSpeedButtons()});
+ $('speed-2').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();speedMultiplier=2;updateSpeedButtons()});
+ $('speed-3').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();speedMultiplier=3;updateSpeedButtons()});
+ $('speed-4').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();speedMultiplier=4;updateSpeedButtons()});
+}
+function updateSpeedButtons(){
+ document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+ $('speed-'+speedMultiplier).classList.add('active');
 }
 $('jump').addEventListener('pointerdown',e=>{e.stopPropagation();jumpReq=1});
-$('sprint').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();sprintOn=!sprintOn;$('sprint').classList.toggle('fast',sprintOn);$('sprint').textContent=sprintOn?'⬆⬆':'⬆'});
 let dr=null;
 if(!touch){
  R.domElement.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX}});
@@ -695,19 +713,23 @@ function update(dt){
  t+=dt;time-=dt;
  let mx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+jx,mz=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)+jz;
  if(K.KeyQ)yaw+=1.8*dt;if(K.KeyE)yaw-=1.8*dt;
- /* D-pad logic for touch devices */
- if(touch){
-  mx+=dpadState.right-dpadState.left;
-  mz+=dpadState.up-dpadState.down;
-  /* Auto-align camera with movement direction on mobile */
-  if(mx!==0||mz!==0){
+ /* tap-to-move logic for touch devices */
+ if(touch&&tapTarget&&!inVehicle){
+  const dx=tapTarget.worldX-pb.position.x,dz=tapTarget.worldZ-pb.position.z,dist=Math.hypot(dx,dz);
+  if(dist>0.5){
+   const angle=Math.atan2(dx,dz);
+   mx=Math.sin(angle);mz=Math.cos(angle);
+   if(dist<2){mx*=dist/2;mz*=dist/2}
+   /* Auto-align camera with movement direction on mobile */
    const targetYaw=Math.atan2(mx,mz);
    const diff=targetYaw-yaw;
    yaw+=diff*Math.min(1,dt*8);
+  }else{
+   tapTarget=null;
   }
  }
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
- const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?18:14)*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?18:14)*(touch?speedMultiplier:1)*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const dx=fx*mz+rx*mx,dz=fz*mz+rz*mx;
  if(inVehicle&&currentVehicle){driveStep(dt);pb.position.copy(currentVehicle.b.position);pb.position.y=1;pl.position.copy(pb.position)}else{
  const ground=pb.position.y<1.08;if((K.Space||jumpReq)&&ground)pb.velocity.y=8.5*(1+upgrades.jump*.2);jumpReq=0;
@@ -856,7 +878,7 @@ function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Le
  $('closeLB').onclick=()=>location.reload()}
 function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}if(!$('agree').checked){alert('Please tick the privacy box to continue');return}ac();ov.style.display='none';run=true;t=0;startRun();toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1];showMission('Reach Class Before 8am','Run from Gidan Kwano to the lecture hall before time runs out. Avoid vehicles and collect jollof for CGPA!')}
 function menu(){
- const ctl=touch?'Use the D-pad on the left to move. Camera automatically follows your direction. JUMP and sprint buttons are on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
+ const ctl=touch?'Tap anywhere on screen to move in that direction. Camera automatically follows your direction. Use speed buttons (1X-4X) to adjust speed. JUMP button is on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
  ov.innerHTML='<div class="card menu"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>DASH 3D</h1><p class="sub" style="margin-top:6px">Daily challenge: <strong>'+DM[dayMod][0]+'</strong> &middot; Badges '+Object.keys(getBadges()).length+'/6</p></div>'+
  '<div class="mcols"><div><h2>Player registration</h2><input type="text" id="pname" class="fld" placeholder="Enter your name" autocomplete="off" maxlength="30"><select id="pfaculty" class="fld"><option value="">Select Faculty</option>'+Object.keys(FACULTIES).map(k=>'<option value="'+k+'">'+FACULTIES[k].name+'</option>').join('')+'</select><select id="pdept" class="fld" disabled><option value="">Select Department</option></select>'+
  '<label class="sm" style="display:flex;gap:8px;text-align:left;margin:8px 0 12px"><input type="checkbox" id="agree" style="flex:none;width:20px;height:20px"><span>I agree that my name, faculty, department and score are shown on the leaderboard.</span></label>'+

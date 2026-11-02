@@ -662,21 +662,23 @@ $('shop-btn').onclick=openShop;
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.shiftKey)K.Shift=1;if(e.code==='Space')e.preventDefault();if(e.code==='KeyF'&&run){if(!inVehicle)tryEnterVehicle();else exitVehicle()}});addEventListener('keyup',e=>{K[e.code]=0;if(!e.shiftKey)K.Shift=0});
 let jx=0,jz=0,jumpReq=0;
 /* tap-to-move for touch devices */
-let tapTarget=null,tapId=null;
+let tapTarget=null,tapId=null,tapStartX=0,tapStartY=0;
 if(touch){
  R.domElement.addEventListener('pointerdown',e=>{
-  if(!inVehicle){
-   tapId=e.pointerId;R.domElement.setPointerCapture(tapId);
+  if(!inVehicle&&e.target.tagName!=='BUTTON'){
+   tapId=e.pointerId;
+   tapStartX=e.clientX;
+   tapStartY=e.clientY;
    tapTarget={x:e.clientX,y:e.clientY};
   }
  });
  R.domElement.addEventListener('pointerup',e=>{
   if(tapId&&e.pointerId===tapId){
-   const dx=e.clientX-tapTarget.x,dy=e.clientY-tapTarget.y;
-   if(Math.hypot(dx,dy)<20){
+   const dx=e.clientX-tapStartX,dy=e.clientY-tapStartY;
+   if(Math.hypot(dx,dy)<30){
     tapTarget.worldX=pb.position.x;tapTarget.worldZ=pb.position.z;
     const angle=yaw+Math.atan2(dx,dy);
-    tapTarget.worldX+=Math.sin(angle)*8;tapTarget.worldZ+=Math.cos(angle)*8;
+    tapTarget.worldX+=Math.sin(angle)*10;tapTarget.worldZ+=Math.cos(angle)*10;
    }else{
     tapTarget=null;
    }

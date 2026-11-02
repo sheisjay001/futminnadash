@@ -184,8 +184,8 @@ details.sec p{margin:6px 0}
  <button id="shop-btn">🛒</button>
 </div>
 <div id="ov"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script src="three.min.js"></script>
+<script src="cannon.min.js"></script>
 <script>
 const $=i=>document.getElementById(i),ov=$('ov');
 if(typeof THREE==='undefined'||typeof CANNON==='undefined'){ov.innerHTML='<div class="card"><h1>Offline</h1><p class="sub">The 3D engine could not load. Check your internet connection and refresh.</p></div>';throw new Error('libs')}
@@ -305,11 +305,11 @@ document.body.prepend(R.domElement);
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,1,.1,600);
 const SKY=new THREE.Color(0xf0b27a);scene.background=SKY.clone();scene.fog=new THREE.FogExp2(0xf0b27a,.006);
 const hemi=new THREE.HemisphereLight(0xffe0b0,0x3a4a2a,.65);scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xffc27a,1.5);sun.castShadow=!touch;const SM=touch?512:2048;sun.shadow.mapSize.set(SM,SM);
+const sun=new THREE.DirectionalLight(0xffc27a,1.5);sun.castShadow=!touch;const SM=touch?256:2048;sun.shadow.mapSize.set(SM,SM);
 Object.assign(sun.shadow.camera,{left:-38,right:38,top:38,bottom:38,near:1,far:140});sun.shadow.bias=-.0006;scene.add(sun,sun.target);
 const torch=new THREE.SpotLight(0xfff2cc,0,45,.55,.5,1);torch.castShadow=false;scene.add(torch,torch.target);
 /* ---------- physics ---------- */
-const W=new CANNON.World();W.gravity.set(0,-22,0);W.broadphase=new CANNON.NaiveBroadphase();W.solver.iterations=8;
+const W=new CANNON.World();W.gravity.set(0,-22,0);W.broadphase=new CANNON.NaiveBroadphase();W.solver.iterations=touch?4:8;
 const mat=new CANNON.Material();W.addContactMaterial(new CANNON.ContactMaterial(mat,mat,{friction:.08,restitution:.25}));
 const gb=new CANNON.Body({mass:0,material:mat});gb.addShape(new CANNON.Plane());gb.quaternion.setFromEuler(-Math.PI/2,0,0);W.addBody(gb);
 /* ---------- helpers ---------- */
@@ -556,7 +556,7 @@ function guardsStep(dt){const P=pb.position,n=(heat>=20)+(heat>=50)+(heat>=80);
   o.g.l1.position.z=Math.sin(t*11)*.25;o.g.l2.position.z=-Math.sin(t*11)*.25;
   if(d<1.5){hurt('Security caught you!',false);heat=Math.max(0,heat-30);o.b.position.set(rnd(-8,8),.6,Math.min(24,P.z+30))}})}
 /* pedestrians on the sidewalks, honking traffic, DRIVE button state */
-OLX=!touch;const peds=[];for(let i=0;i<16;i++){const g=person([0x4a7fb5,0xb5654a,0x7fb54a,0xb54a9a][i%4],i%2?0x6b3f1d:0xc68642,0x1a1a1a,i%3==0),s=i%2?1:-1;peds.push({g,d:i%4<2?1:-1,sp:rnd(1.1,1.8),x:s*8.7+rnd(-.5,.5),z:-rnd(0,500)})}
+OLX=!touch;const peds=[];for(let i=0;i<(touch?8:16);i++){const g=person([0x4a7fb5,0xb5654a,0x7fb54a,0xb54a9a][i%4],i%2?0x6b3f1d:0xc68642,0x1a1a1a,i%3==0),s=i%2?1:-1;peds.push({g,d:i%4<2?1:-1,sp:rnd(1.1,1.8),x:s*8.7+rnd(-.5,.5),z:-rnd(0,500)})}
 OLX=true;
 const BW=['POW!','BAM!','WHAM!','OUCH!'],bursts=[];
 function burst(txt){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.translate(128,128);x.beginPath();

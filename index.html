@@ -699,6 +699,12 @@ function update(dt){
  if(touch){
   mx+=dpadState.right-dpadState.left;
   mz+=dpadState.up-dpadState.down;
+  /* Auto-align camera with movement direction on mobile */
+  if(mx!==0||mz!==0){
+   const targetYaw=Math.atan2(mx,mz);
+   const diff=targetYaw-yaw;
+   yaw+=diff*Math.min(1,dt*8);
+  }
  }
  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
  const sp=(K.ShiftLeft||K.ShiftRight||K.Shift||sprintOn?18:14)*(1+upgrades.speed*.15),fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
@@ -850,7 +856,7 @@ function showLeaderboard(lb,faculty,dept){const title=dept?DEPT_NAMES[dept]+' Le
  $('closeLB').onclick=()=>location.reload()}
 function begin(){playerName=$('pname').value.trim();playerFaculty=$('pfaculty').value;playerDept=$('pdept').value;if(!playerName){alert('Please enter your name');return}if(!playerFaculty||!playerDept){alert('Please select your faculty and department');return}if(!$('agree').checked){alert('Please tick the privacy box to continue');return}ac();ov.style.display='none';run=true;t=0;startRun();toast('RUN TO THE LECTURE HALL',2200);$('zn').textContent=ZONES[0][1];showMission('Reach Class Before 8am','Run from Gidan Kwano to the lecture hall before time runs out. Avoid vehicles and collect jollof for CGPA!')}
 function menu(){
- const ctl=touch?'Use the D-pad on the left to move. Drag anywhere else to look around. JUMP and sprint buttons are on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
+ const ctl=touch?'Use the D-pad on the left to move. Camera automatically follows your direction. JUMP and sprint buttons are on the right. Tap DRIVE next to a keke or okada, and PAUSE for settings.':'WASD or arrows: move. Shift: sprint. Space: jump. Q / E or mouse drag: turn the camera. F: drive a keke or okada. Esc or P: pause.';
  ov.innerHTML='<div class="card menu"><div><div class="ey">Technology for Empowerment</div><h1>FUTMINNA<br>DASH 3D</h1><p class="sub" style="margin-top:6px">Daily challenge: <strong>'+DM[dayMod][0]+'</strong> &middot; Badges '+Object.keys(getBadges()).length+'/6</p></div>'+
  '<div class="mcols"><div><h2>Player registration</h2><input type="text" id="pname" class="fld" placeholder="Enter your name" autocomplete="off" maxlength="30"><select id="pfaculty" class="fld"><option value="">Select Faculty</option>'+Object.keys(FACULTIES).map(k=>'<option value="'+k+'">'+FACULTIES[k].name+'</option>').join('')+'</select><select id="pdept" class="fld" disabled><option value="">Select Department</option></select>'+
  '<label class="sm" style="display:flex;gap:8px;text-align:left;margin:8px 0 12px"><input type="checkbox" id="agree" style="flex:none;width:20px;height:20px"><span>I agree that my name, faculty, department and score are shown on the leaderboard.</span></label>'+
